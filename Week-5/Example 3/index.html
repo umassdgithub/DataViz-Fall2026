@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Precipitation in Dartmouth</title>
+    <script src="../libs/d3/d3.min.js"></script>
+    <style>
+        body{
+            font-family: sans-serif;
+        }
+        .container{
+            padding: 30px;
+        }
+        .xAxis{
+            font-family: sans-serif;
+            font-size: 18px;
+        }
+        .yAxis{
+            font-family: sans-serif;
+            font-size: 16px;
+        }
+    </style>
+
+</head>
+<body>
+<h1>
+    Precipitation in Dartmouth
+</h1>
+<div class="container">
+    <svg id="main" width="50vw" height="40vw" viewBox="0 0 1000 800">
+    </svg>
+</div>
+<script>
+    const margin = {top: 50, bottom: 100, left: 50, right: 50}
+    const width=1000,height=800;
+
+
+    // Load the data
+
+    d3.csv("../dataProcessing/Dartmouth.csv").then(areaChart)
+
+
+    function areaChart(data){
+
+    const Years = data.map(d=>Number(d.YEAR));
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+
+    const stack = d3.stack()
+        .keys(months);
+
+    const stackedSeries = stack(data);
+
+
+    console.log(stackedSeries)
+
+    const colors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928'];
+
+        //find the max Y value
+    const yMax = d3.max(stackedSeries.map(d=>d3.max(d.map(dd=>d3.max(dd)))))
+
+        // find the min Y value
+    const yMin = d3.min(stackedSeries.map(d=>d3.min(d.map(dd=>d3.min(dd)))))
+
+
+       // Step 2: Scale function
+    const yScale = d3.scaleLinear()
+           .domain([yMin, yMax]) // data values are between [0 , sum of all y values]
+           .range([height-margin.bottom, margin.top]);
+
+    const xScale =d3.scaleLinear()
+            .domain(d3.extent(Years))
+            .range([margin.left,width-margin.right])
+
+
+
+
+      // Step 3 area function
+    const area = d3.area()
+          .x((_, i)=> xScale(Years[i]))
+          .y0(d=>yScale(d[0]))
+          .y1(d=>yScale(d[1]))
+          .curve(d3.curveBasis); // in case you want to have smooth lines!
+
+
+
+        // step 4 select the svg element and append a group
+    const group = d3.select('svg#main').append("g")
+
+        //   // step 5, add the area paths to the group
+    group.append("g").attr("class","areaChart").selectAll('.paths')
+       .data(stackedSeries)        // bind data to the group
+       .enter()
+       .append('path')             // append "path" element to the group
+       .attr('fill', (d, i)=>colors[i])
+       .attr("opacity",0)
+       .transition()           // add animation-transition
+       .duration(100)         // add duration
+       .attr("opacity",1)      // change opacity from 0 to 1 during 2 seconds
+       .attr('d', area);       // in short it can be written as just the generator name
+
+    const xAxisGenerator = d3.axisBottom(xScale)
+        .tickValues(Years.filter((d, i) => i%5===0))
+        .tickFormat(d3.format("d"))
+    const yAxisGenerator = d3.axisLeft(yScale)
+
+    const xAxisGroup= group.append("g")
+       .attr("class","xAxis")
+       .attr("transform",`translate(${0},${height-margin.bottom})`)
+    xAxisGroup.call(xAxisGenerator)
+
+    const yAxisGroup= group.append("g")
+            .attr("class","yAxis")
+            .attr("transform",`translate(${margin.left},${0})`)
+    yAxisGroup.call(yAxisGenerator)
+
+    const legends = group.append("g")
+        .attr("class", "legend")
+        .selectAll("g")
+        .data(months)
+        .enter()
+        .append("g")
+        .attr("transform", (_, i) => `translate(${margin.left + (i % 6) * 150},${height - margin.bottom + 40 + Math.floor(i / 6) * 30})`);
+
+    legends.append("rect")
+        .attr("width", 16)
+        .attr("height", 16)
+        .attr("fill", (_, i) => colors[i]);
+
+    legends.append("text")
+        .attr("x", 22)
+        .attr("y", 13)
+        .text(d => d);
+
+    }
+
+
+
+
+</script>
+</body>
+</html>
+
+
+
+
+
+
