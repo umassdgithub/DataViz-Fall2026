@@ -1,1 +1,3 @@
-let token = "pk.eyJ1IjoiYWtoYXZhbjEyIiwiYSI6ImNqd2pnd3ZwbDBjb2wzemwxcjBib2MzOWcifQ.qQXZgiwzCmTqZIm8pW8Mww"
+// Add your Mapbox public token here
+// Get a free token at: https://account.mapbox.com/auth/signup/
+let token = "YOUR_MAPBOX_PUBLIC_TOKEN_HERE";

@@ -1,4 +1,4 @@
-# Week 6: Geospatial Visualization
+git # Week 6: Geospatial Visualization
 
 A collection of data visualization examples using D3.js, Deck.gl, and Mapbox for creating interactive geospatial visualizations.
 
