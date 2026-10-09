@@ -87,3 +87,9 @@ htmlcov/
 
 # Misc
 .git-credentials
+
+# Large geospatial files (exceed GitHub 100MB limit)
+*.geojson
+*.topojson
+Week-6/Part-1-D3JS/DataProcessing/counties.geojson
+Week-6/Part-1-D3JS/DataProcessing/roads.geojson
