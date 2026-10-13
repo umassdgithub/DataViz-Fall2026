@@ -93,3 +93,5 @@ htmlcov/
 *.topojson
 Week-6/Part-1-D3JS/DataProcessing/counties.geojson
 Week-6/Part-1-D3JS/DataProcessing/roads.geojson
+.qodo
+.env
