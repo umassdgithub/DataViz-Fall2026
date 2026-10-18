@@ -18,7 +18,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -61,11 +60,20 @@ yarn-error.log
 .chatgpt/
 .claude/
 .aider*
+.codex/
+.agents/
+.continue/
+.roo/
+.windsurf/
+AGENTS.md
+CLAUDE.md
+.cursorrules
+.github/copilot-instructions.md
 
 # Environment variables
 .env
-.env.local
-.env.*.local
+.env.*
+.envrc
 
 # OS and system files
 .DS_Store
@@ -94,4 +102,3 @@ htmlcov/
 Week-6/Part-1-D3JS/DataProcessing/counties.geojson
 Week-6/Part-1-D3JS/DataProcessing/roads.geojson
 .qodo
-.env
