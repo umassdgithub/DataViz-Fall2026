@@ -2,7 +2,9 @@
 
 ## Running the examples
 
-From this folder, start a local server:
+**Method one:** Using VS Code Live Server Plugin
+
+**Method two:**  From this folder, start a local server:
 
 ```sh
 python3 -m http.server 8000
