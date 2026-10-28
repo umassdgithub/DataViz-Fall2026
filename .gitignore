@@ -3,6 +3,9 @@ venv/
 env/
 ENV/
 .venv/
+.idea
+.qodo
+
 pip-log.txt
 pip-delete-this-directory.txt
 
@@ -18,7 +21,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -61,11 +63,20 @@ yarn-error.log
 .chatgpt/
 .claude/
 .aider*
+.codex/
+.agents/
+.continue/
+.roo/
+.windsurf/
+AGENTS.md
+CLAUDE.md
+.cursorrules
+.github/copilot-instructions.md
 
 # Environment variables
 .env
-.env.local
-.env.*.local
+.env.*
+.envrc
 
 # OS and system files
 .DS_Store
@@ -93,3 +104,4 @@ htmlcov/
 *.topojson
 Week-6/Part-1-D3JS/DataProcessing/counties.geojson
 Week-6/Part-1-D3JS/DataProcessing/roads.geojson
+.qodo

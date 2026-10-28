@@ -29,8 +29,11 @@
         stroked: true,
         filled: true,
         opacity:.9,
+        extruded:true,
         getLineColor: [0, 0, 0],
+        getElevation:d=>scaleLinear(d['properties']['POP2010']),
         lineWidthMinPixels: .5,
+
         getFillColor: d=> color(d['properties']['POP2010']),
     });
     // http://bboxfinder.com/
@@ -43,7 +46,8 @@
             latitude: 42.182741,
             longitude: -71.961823,
             zoom: 7,
-            maxZoom: 16
+            maxZoom: 16,
+            pitch:45
         },
         controller: true,
         layers: [geojsonLayer]
@@ -58,6 +62,7 @@
         return [rgbColor.r,rgbColor.g,rgbColor.b];
     }
 
+    const scaleLinear = d3.scaleLinear().domain([75,617594]).range([1,10000])
 
 </script>
 </html>
