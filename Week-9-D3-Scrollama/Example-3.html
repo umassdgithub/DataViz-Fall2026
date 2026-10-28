@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Example 3: Massachusetts Counties, from Map to Bar Chart</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: #222;
+      background: #fff;
+    }
+    .intro, .outro {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 30vh 1rem;
+      text-align: center;
+    }
+    .intro h1 { font-size: 2.2rem; margin: 0 0 1rem; }
+    .outro { font-size: 0.95rem; color: #555; }
+
+    /* ---- Scrollama sticky-overlay pattern (same as Examples 1 and 2) ---- */
+    #scrolly {
+      position: relative;          /* the scroll story container */
+    }
+    #scrolly figure {
+      position: sticky;            /* the graphic stays in view */
+      left: 0;
+      width: 100%;
+      margin: 0;
+      z-index: 0;                  /* sits underneath the text */
+      /* top and height are set in JS (handleResize) */
+    }
+    #scrolly article {
+      position: relative;          /* later in the DOM, so it paints on top */
+      max-width: 21rem;
+      margin: 0 auto 0 4%;
+      padding: 0;
+      z-index: 1;
+    }
+    .step {
+      margin: 0 0 2rem 0;
+      display: flex;
+      align-items: center;         /* card sits in the middle of the tall step */
+    }
+    .step:last-child { margin-bottom: 0; }
+    .step p {
+      margin: 0;
+      padding: 1rem 1.25rem;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid #ccc;
+      font-size: 1.05rem;
+      line-height: 1.5;
+      opacity: 0.35;
+      transition: opacity 0.3s;
+    }
+    .step.is-active p { opacity: 1; border-color: #333; }
+
+    /* ---- Visible trigger line (teaching aid; delete for a real story) ---- */
+    #trigger-line {
+      position: fixed;             /* stays at the same screen height while you scroll */
+      left: 0;
+      right: 0;
+      /* top is set in JS from OFFSET, the same number Scrollama uses */
+      border-top: 2px dashed #b4530f;
+      z-index: 10;                 /* above the chart and the cards */
+      pointer-events: none;        /* clicks pass through it */
+    }
+    /* Outline each step box: its top or bottom EDGE is what crosses the line,
+       not the text card, which sits in the middle of the taller box */
+    .step { outline: 1px dashed #b8bec6; outline-offset: -1px; }
+    #trigger-line span {
+      position: absolute;
+      right: 1rem;
+      top: -1.9rem;
+      padding: 2px 8px;
+      background: #fff;
+      border: 1px solid #b4530f;
+      color: #8a3d0b;
+      font: 13px Helvetica, Arial, sans-serif;
+    }
+
+    /* ---- Chart ---- */
+    svg text { font-family: Helvetica, Arial, sans-serif; font-size: 12px; fill: #444; }
+    .axis path, .axis line { stroke: #999; }
+    .county { stroke: #fff; stroke-width: 1; stroke-linejoin: round; }
+    .legend text { font-size: 12px; }
+    .value-label { font-size: 11px; fill: #333; }
+    #status { font: 14px Helvetica, Arial, sans-serif; color: #8a3d0b; text-align: center; padding: 1rem; }
+
+    @media (max-width: 700px) {
+      #scrolly article { margin: 0 auto; max-width: 90%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- The trigger line: a step fires when its top or bottom edge crosses this line -->
+  <div id="trigger-line"><span>trigger line (offset 0.5)</span></div>
+
+  <section class="intro">
+    <h1>Massachusetts, county by county</h1>
+    <p>A Scrollama + D3 example: the county shapes on a map turn into the bars of a bar chart as you scroll.</p>
+    <p id="status">Loading the map...</p>
+  </section>
+
+  <section id="scrolly">
+    <figure>
+      <svg id="chart"></svg>
+    </figure>
+
+    <article>
+      <div class="step" data-step="0">
+        <p>Massachusetts has 14 counties. Their sizes on the map tell us nothing about how many people live in each.</p>
+      </div>
+      <div class="step" data-step="1">
+        <p>Color each county by its population in the 2020 Census. Darker means more people. Middlesex stands out.</p>
+      </div>
+      <div class="step" data-step="2">
+        <p>Now lift every county off the map and line them up from most to least populous. Each shape is resized to fit the same slot.</p>
+      </div>
+      <div class="step" data-step="3">
+        <p>Each shape morphs into a bar. The height of the bar is the county's population.</p>
+      </div>
+      <div class="step" data-step="4">
+        <p>The four largest counties hold <span class="top4-share">most</span> of the state's <span class="state-total">7 million</span> people.</p>
+      </div>
+      <div class="step" data-step="5">
+        <p>Back on the map: Middlesex, Essex and Suffolk sit around Boston in the east, and Worcester fills the center. The western counties are large in area but small in population.</p>
+      </div>
+    </article>
+  </section>
+
+  <section class="outro">
+    <p>Data: U.S. Census Bureau, 2020 Census county population counts. County shapes: us-atlas (U.S. Census Bureau cartographic boundaries).</p>
+    <p>Scroll back up and the shapes turn back into a map.</p>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+  <!-- flubber morphs one shape into another, which D3 alone cannot do -->
+  <script src="https://cdn.jsdelivr.net/npm/flubber@0.4.2/build/flubber.min.js"></script>
+  <script src="https://unpkg.com/scrollama@3.2.0"></script>
+  <script>
+    // ---------- 1. Data ----------
+    // U.S. Census Bureau, 2020 Census (April 1, 2020) population by county.
+    // The 14 counts add up to the state total, 7,029,917.
+    const POPULATION = {
+      Middlesex: 1632002, Worcester: 862111, Essex: 809829, Suffolk: 797936,
+      Norfolk: 725981, Bristol: 579200, Plymouth: 530819, Hampden: 465825,
+      Barnstable: 228996, Hampshire: 162308, Berkshire: 129026, Franklin: 71029,
+      Dukes: 20600, Nantucket: 14255
+    };
+    const COUNTIES_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/counties-10m.json";
+
+    // ---------- 2. Selections and Scrollama instance ----------
+    const scrolly = d3.select("#scrolly");
+    const figure  = scrolly.select("figure");
+    const step    = scrolly.selectAll(".step");
+    const svg     = d3.select("#chart");
+    const scroller = scrollama();
+
+    // Where the trigger line sits: 0 = top of the screen, 0.5 = middle, 1 = bottom.
+    // The same number is given to Scrollama and used to draw the visible line.
+    const OFFSET = 0.5;
+    const triggerLine  = d3.select("#trigger-line").style("top", OFFSET * 100 + "%");
+    const triggerLabel = triggerLine.select("span");
+
+    const margin = { top: 30, right: 30, bottom: 90, left: 80 };
+    let width, height;                         // inner chart size, set on resize
+    let currentStep = 0;
+
+    const g       = svg.append("g");
+    const xAxisG  = g.append("g").attr("class", "axis");
+    const yAxisG  = g.append("g").attr("class", "axis");
+    const yLabel  = g.append("text").attr("text-anchor", "middle").text("Population (2020 Census)");
+    const islandG = g.append("g");             // small islands, shown only on the map
+    const shapeG  = g.append("g");             // one morphing path per county
+    const valueG  = g.append("g");             // population labels on the bars
+    const legend  = g.append("g").attr("class", "legend");
+
+    let counties, shapes, islands, values;     // filled after the map loads
+    const projection = d3.geoMercator();
+    const path = d3.geoPath(projection);
+    // log scale, because Middlesex has over 100 times the people of Nantucket;
+    // start the blues above white so the smallest counties stay visible
+    const color = d3.scaleSequentialLog(t => d3.interpolateBlues(0.2 + 0.8 * t));
+    const fmt = d3.format(",");
+
+    // ---------- 3. Load the map, then start ----------
+    d3.json(COUNTIES_URL)
+      .then(us => {
+        // keep the 14 Massachusetts counties (state FIPS code 25)
+        const features = topojson.feature(us, us.objects.counties).features
+          .filter(f => f.id.startsWith("25"));
+
+        counties = features.map(f => {
+          // A county can be several polygons (islands). flubber morphs ONE ring
+          // into one ring, so we keep the largest polygon as the shape that
+          // morphs, and draw the other polygons separately as "islands".
+          const polys = f.geometry.type === "Polygon"
+            ? [f.geometry.coordinates] : f.geometry.coordinates;
+          const asFeature = coords => ({ type: "Feature", geometry: { type: "Polygon", coordinates: [coords[0]] } });
+          const byArea = polys.map(asFeature).sort((a, b) => d3.geoArea(b) - d3.geoArea(a));
+          return {
+            name: f.properties.name,
+            pop: POPULATION[f.properties.name],
+            main: byArea[0],
+            rest: { type: "FeatureCollection", features: byArea.slice(1) }
+          };
+        });
+        counties.sort((a, b) => b.pop - a.pop);
+        counties.forEach((c, i) => c.rank = i);   // 0 = most populous
+
+        color.domain(d3.extent(counties, c => c.pop));
+        fillCardNumbers();
+        d3.select("#status").remove();
+        init();
+      })
+      .catch(err => {
+        d3.select("#status").text("Could not load the map. Check your internet connection and reload.");
+        console.error(err);
+      });
+
+    function fillCardNumbers() {
+      const total = d3.sum(counties, c => c.pop);
+      const top4 = d3.sum(counties.slice(0, 4), c => c.pop);
+      d3.selectAll(".top4-share").text(d3.format(".0%")(top4 / total));
+      d3.selectAll(".state-total").text(fmt(total));
+    }
+
+    // ---------- 4. Shapes for each state of the chart ----------
+    // Every layout writes a target path string (d.target) for each county.
+    // render() then morphs from whatever is on screen now to that target.
+
+    // the county drawn at its real place on the map
+    function mapPath(c) {
+      return path(c.main);
+    }
+
+    // the county shape scaled and moved into slot number c.rank, sitting on the baseline
+    function rowPath(c, x) {
+      const [[x0, y0], [x1, y1]] = path.bounds(c.main);
+      const s = Math.min((x.bandwidth() * 0.9) / (x1 - x0), (height * 0.35) / (y1 - y0));
+      const cx = x(c.name) + x.bandwidth() / 2;
+      const tx = cx - s * (x0 + x1) / 2;
+      const ty = height - s * y1;
+      // a geoTransform runs every point through the projection, then scales and moves it
+      const moved = d3.geoPath(d3.geoTransform({
+        point(lon, lat) {
+          const [px, py] = projection([lon, lat]);
+          this.stream.point(tx + px * s, ty + py * s);
+        }
+      }));
+      return moved(c.main);
+    }
+
+    // a bar as a closed path, so flubber can morph a county outline into it
+    function barPath(c, x, y) {
+      const x0 = x(c.name), x1 = x0 + x.bandwidth();
+      const top = y(c.pop), bottom = height;
+      return `M${x0},${bottom}L${x0},${top}L${x1},${top}L${x1},${bottom}Z`;
+    }
+
+    function bandScale() {
+      return d3.scaleBand().domain(counties.map(c => c.name)).range([0, width]).padding(0.25);
+    }
+    function popScale() {
+      return d3.scaleLinear().domain([0, d3.max(counties, c => c.pop)]).nice().range([height, 0]);
+    }
+
+    function stepMap() {
+      counties.forEach(c => { c.target = mapPath(c); c.fill = "#d9dde2"; c.opacity = 1; });
+      return { showIslands: true };
+    }
+    function stepChoropleth() {
+      counties.forEach(c => { c.target = mapPath(c); c.fill = color(c.pop); c.opacity = 1; });
+      return { showIslands: true, showLegend: true };
+    }
+    function stepRow() {
+      const x = bandScale();
+      counties.forEach(c => { c.target = rowPath(c, x); c.fill = color(c.pop); c.opacity = 1; });
+      return { x };
+    }
+    function stepBars() {
+      const x = bandScale(), y = popScale();
+      counties.forEach(c => { c.target = barPath(c, x, y); c.fill = color(c.pop); c.opacity = 1; });
+      return { x, y, showValues: true };
+    }
+    function stepTopFour() {
+      const x = bandScale(), y = popScale();
+      counties.forEach(c => {
+        c.target = barPath(c, x, y);
+        c.fill = c.rank < 4 ? "#c2410c" : color(c.pop);
+        c.opacity = c.rank < 4 ? 1 : 0.35;
+      });
+      return { x, y, showValues: true };
+    }
+    function stepTopFourMap() {
+      counties.forEach(c => {
+        c.target = mapPath(c);
+        c.fill = c.rank < 4 ? "#c2410c" : "#d9dde2";
+        c.opacity = 1;
+      });
+      return { showIslands: true };
+    }
+
+    // one layout per step card, in the same order as the cards in the HTML
+    const layouts = [stepMap, stepChoropleth, stepRow, stepBars, stepTopFour, stepTopFourMap];
+
+    // ---------- 5. Render a step (works in both scroll directions) ----------
+    function render(stepIndex, animate = true) {
+      const scene = layouts[stepIndex]();      // sets c.target, c.fill, c.opacity
+      const t = svg.transition().duration(animate ? 1400 : 0).ease(d3.easeCubicInOut);
+
+      if (animate) {
+        // morph from the shape on screen now (even if a morph is half done) to the target
+        shapes.transition(t)
+          .delay(c => c.rank * 40)
+          .attrTween("d", function (c) {
+            return flubber.interpolate(this.getAttribute("d"), c.target, { maxSegmentLength: 4 });
+          })
+          .attr("fill", c => c.fill)
+          .attr("fill-opacity", c => c.opacity);
+      } else {
+        shapes.attr("d", c => c.target).attr("fill", c => c.fill).attr("fill-opacity", c => c.opacity);
+      }
+
+      islands.transition(t)
+        .attr("fill", c => stepIndex === 5 && c.rank < 4 ? "#c2410c" : (stepIndex === 0 || stepIndex === 5 ? "#d9dde2" : color(c.pop)))
+        .style("opacity", scene.showIslands ? 1 : 0);
+      legend.transition(t).style("opacity", scene.showLegend ? 1 : 0);
+
+      // x axis with county names (row and bar steps)
+      xAxisG.attr("transform", `translate(0,${height})`);
+      xAxisG.transition(t).style("opacity", scene.x ? 1 : 0);
+      if (scene.x) {
+        xAxisG.call(d3.axisBottom(scene.x).tickSizeOuter(0))
+          .selectAll("text")
+          .attr("text-anchor", "end")
+          .attr("transform", "rotate(-40)")
+          .attr("dx", "-0.4em").attr("dy", "0.6em");
+      }
+
+      // y axis and value labels (bar steps)
+      yAxisG.transition(t).style("opacity", scene.y ? 1 : 0);
+      yLabel.transition(t).style("opacity", scene.y ? 1 : 0);
+      if (scene.y) yAxisG.call(d3.axisLeft(scene.y).ticks(6, "~s"));
+
+      const y = popScale(), x = bandScale();
+      values
+        .attr("x", c => x(c.name) + x.bandwidth() / 2)
+        .attr("y", c => y(c.pop) - 6)
+        .transition(t)
+        .style("opacity", c => scene.showValues && (stepIndex !== 4 || c.rank < 4) ? 1 : 0);
+    }
+
+    function drawLegend() {
+      const stops = [15000, 50000, 150000, 500000, 1500000];
+      legend.attr("transform", `translate(${width * 0.32},${height - 110})`);
+      legend.selectAll("text.title").data([0]).join("text")
+        .attr("class", "title").attr("y", -2).text("Population, 2020");
+      const rows = legend.selectAll("g.row").data(stops).join("g")
+        .attr("class", "row")
+        .attr("transform", (d, i) => `translate(0,${16 + i * 18})`);
+      rows.selectAll("rect").data(d => [d]).join("rect")
+        .attr("width", 14).attr("height", 12).attr("y", -10).attr("fill", d => color(d));
+      rows.selectAll("text").data(d => [d]).join("text")
+        .attr("x", 20).text(d => d3.format("~s")(d));
+    }
+
+    // ---------- 6. Resize: size the sticky figure, the steps and the map ----------
+    function handleResize() {
+      const stepH = Math.floor(window.innerHeight * 0.75);
+      step.style("height", stepH + "px");
+
+      const figureHeight = Math.floor(window.innerHeight * 0.85);
+      const figureMarginTop = (window.innerHeight - figureHeight) / 2;
+      figure.style("height", figureHeight + "px")
+            .style("top", figureMarginTop + "px");
+
+      const fullW = figure.node().getBoundingClientRect().width;
+      svg.attr("width", fullW).attr("height", figureHeight);
+      width  = Math.min(fullW, 1000) - margin.left - margin.right;
+      height = figureHeight - margin.top - margin.bottom;
+      g.attr("transform", `translate(${(fullW - width) / 2},${margin.top})`);
+
+      // fit Massachusetts into the right part of the chart area, clear of the text cards
+      projection.fitExtent([[width * 0.3, 0], [width, height]],
+        { type: "FeatureCollection", features: counties.map(c => c.main) });
+      islands.attr("d", c => path(c.rest));
+      yLabel.attr("transform", `translate(-58,${height / 2}) rotate(-90)`);
+
+      drawLegend();
+      render(currentStep, false);
+    }
+
+    // ---------- 7. Scrollama callback ----------
+    function handleStepEnter(response) {
+      // response = { element, index, direction }
+      step.classed("is-active", (d, i) => i === response.index);
+      currentStep = response.index;
+      render(currentStep);
+
+      // show the event on the trigger line's label
+      triggerLabel.text(`trigger line (offset ${OFFSET}): step ${response.index} entered, scrolling ${response.direction}`);
+    }
+
+    // ---------- 8. Start (called once the map has loaded) ----------
+    function init() {
+      // one <path> per county that morphs, keyed by name
+      shapes = shapeG.selectAll("path")
+        .data(counties, c => c.name)
+        .join("path")
+        .attr("class", "county");
+      islands = islandG.selectAll("path")
+        .data(counties, c => c.name)
+        .join("path")
+        .attr("class", "county");
+      values = valueG.selectAll("text")
+        .data(counties, c => c.name)
+        .join("text")
+        .attr("class", "value-label")
+        .attr("text-anchor", "middle")
+        .style("opacity", 0)
+        .text(c => d3.format(".2~s")(c.pop));
+
+      handleResize();
+      scroller
+        .setup({
+          step: "#scrolly article .step",
+          offset: OFFSET,            // the trigger line
+          debug: false
+        })
+        .onStepEnter(handleStepEnter);
+      window.addEventListener("resize", handleResize);
+    }
+  </script>
+</body>
+</html>
