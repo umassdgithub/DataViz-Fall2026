@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" font-family="Helvetica, Arial, sans-serif" font-size="15">
+  <title>What crosses the trigger line</title>
+  <desc>A viewport with the trigger line at half height. The dashed box of step 1 has its top edge above the line, so step 1 has fired, while its text card in the middle of the box is still below the line.</desc>
+  <rect width="900" height="560" fill="#ffffff"/>
+  <defs>
+    <clipPath id="vp2"><rect x="41" y="73" width="398" height="446"/></clipPath>
+  </defs>
+
+  <rect x="40" y="40" width="400" height="480" rx="10" fill="#ffffff" stroke="#57606a" stroke-width="2"/>
+  <line x1="40" y1="72" x2="440" y2="72" stroke="#57606a" stroke-width="1.5"/>
+  <text x="56" y="62" fill="#57606a">viewport</text>
+
+  <g clip-path="url(#vp2)">
+    <!-- step 0 box (above) -->
+    <rect x="80" y="-160" width="320" height="360" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <!-- step 1 box: its top edge has crossed the line -->
+    <rect x="80" y="230" width="320" height="360" fill="#f6f8fa" stroke="#57606a" stroke-width="2" stroke-dasharray="6 5"/>
+    <!-- step 1 card, centered in its box -->
+    <rect x="110" y="370" width="260" height="80" fill="#ffffff" stroke="#1f2328" stroke-width="2"/>
+    <text x="126" y="406" fill="#1f2328">step 1 text card</text>
+    <text x="126" y="428" fill="#57606a" font-size="13">(centered in its box)</text>
+  </g>
+
+  <!-- trigger line -->
+  <line x1="40" y1="280" x2="440" y2="280" stroke="#b4530f" stroke-width="2.5" stroke-dasharray="10 7"/>
+
+  <!-- top edge highlight -->
+  <line x1="80" y1="230" x2="400" y2="230" stroke="#1f2328" stroke-width="3"/>
+
+  <!-- leaders -->
+  <g stroke="#8c959f" stroke-dasharray="2 3">
+    <line x1="400" y1="130" x2="470" y2="130"/>
+    <line x1="400" y1="230" x2="470" y2="210"/>
+    <line x1="440" y1="280" x2="470" y2="296"/>
+    <line x1="370" y1="410" x2="470" y2="410"/>
+  </g>
+
+  <text x="478" y="126" fill="#1f2328" font-weight="bold">step 0's box</text>
+  <text x="478" y="146" fill="#3d4651">Fired earlier; now above the line.</text>
+
+  <text x="478" y="200" fill="#1f2328" font-weight="bold">top edge of step 1's box</text>
+  <text x="478" y="220" fill="#3d4651">It has crossed the line, so Scrollama</text>
+  <text x="478" y="238" fill="#3d4651">called onStepEnter with index 1.</text>
+
+  <text x="478" y="300" fill="#b4530f" font-weight="bold">trigger line (OFFSET = 0.5)</text>
+  <text x="478" y="320" fill="#3d4651">Half way down the viewport.</text>
+
+  <text x="478" y="400" fill="#1f2328" font-weight="bold">step 1's text card</text>
+  <text x="478" y="420" fill="#3d4651">Still below the line. Only the box</text>
+  <text x="478" y="438" fill="#3d4651">edge matters, not the card.</text>
+
+  <text x="478" y="490" fill="#57606a" font-size="13">Scrolling up, the box's bottom edge crosses</text>
+  <text x="478" y="508" fill="#57606a" font-size="13">the line instead, with direction "up".</text>
+</svg>

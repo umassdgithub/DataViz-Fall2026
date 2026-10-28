@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="540" viewBox="0 0 900 540" font-family="Helvetica, Arial, sans-serif" font-size="15">
+  <title>The sticky-overlay pattern</title>
+  <desc>A browser viewport. The sticky figure with the chart fills the middle. Step cards scroll over it. A dashed trigger line crosses the viewport at half height.</desc>
+  <rect width="900" height="540" fill="#ffffff"/>
+  <defs>
+    <clipPath id="vp"><rect x="41" y="73" width="458" height="426"/></clipPath>
+  </defs>
+
+  <!-- viewport -->
+  <rect x="40" y="40" width="460" height="460" rx="10" fill="#ffffff" stroke="#57606a" stroke-width="2"/>
+  <line x1="40" y1="72" x2="500" y2="72" stroke="#57606a" stroke-width="1.5"/>
+  <text x="56" y="62" fill="#57606a">browser window (viewport)</text>
+
+  <g clip-path="url(#vp)">
+    <!-- sticky figure -->
+    <rect x="62" y="110" width="416" height="350" fill="#f3f4f6" stroke="#8c959f" stroke-width="1.5"/>
+    <g fill="#8c959f">
+      <circle cx="300" cy="380" r="6"/><circle cx="330" cy="350" r="6"/><circle cx="355" cy="365" r="6"/>
+      <circle cx="380" cy="310" r="6"/><circle cx="405" cy="325" r="6"/><circle cx="425" cy="260" r="6"/>
+      <circle cx="445" cy="240" r="6"/><circle cx="320" cy="400" r="6"/><circle cx="370" cy="410" r="6"/>
+      <circle cx="415" cy="200" r="6"/>
+    </g>
+    <!-- step cards scrolling over it -->
+    <rect x="86" y="250" width="190" height="84" fill="#ffffff" stroke="#1f2328" stroke-width="2"/>
+    <text x="100" y="300" fill="#1f2328">step 1 card</text>
+    <text x="100" y="320" fill="#57606a" font-size="13">(active)</text>
+    <rect x="86" y="455" width="190" height="80" fill="#ffffff" stroke="#8c959f" stroke-width="1.5"/>
+    <text x="100" y="485" fill="#57606a">step 2 card</text>
+    <rect x="86" y="-20" width="190" height="80" fill="#ffffff" stroke="#8c959f" stroke-width="1.5"/>
+  </g>
+
+  <!-- trigger line -->
+  <line x1="40" y1="270" x2="500" y2="270" stroke="#b4530f" stroke-width="2.5" stroke-dasharray="10 7"/>
+
+  <!-- labels -->
+  <g stroke="#8c959f" stroke-dasharray="2 3">
+    <line x1="478" y1="140" x2="540" y2="140"/>
+    <line x1="276" y1="300" x2="540" y2="210"/>
+    <line x1="500" y1="270" x2="540" y2="290"/>
+    <line x1="276" y1="490" x2="540" y2="420"/>
+  </g>
+  <text x="548" y="136" fill="#1f2328" font-weight="bold">figure</text>
+  <text x="548" y="156" fill="#3d4651">position: sticky. Stays pinned while</text>
+  <text x="548" y="174" fill="#3d4651">the reader scrolls through #scrolly.</text>
+
+  <text x="548" y="206" fill="#1f2328" font-weight="bold">.step cards</text>
+  <text x="548" y="226" fill="#3d4651">Come after the figure in the HTML,</text>
+  <text x="548" y="244" fill="#3d4651">so they scroll over it (the overlay).</text>
+
+  <text x="548" y="294" fill="#b4530f" font-weight="bold">trigger line (offset 0.5)</text>
+  <text x="548" y="314" fill="#3d4651">When a step's edge crosses it,</text>
+  <text x="548" y="332" fill="#3d4651">Scrollama calls onStepEnter.</text>
+
+  <text x="548" y="416" fill="#1f2328" font-weight="bold">next card</text>
+  <text x="548" y="436" fill="#3d4651">Scrolls up from below; it fires</text>
+  <text x="548" y="454" fill="#3d4651">when it reaches the line.</text>
+</svg>
