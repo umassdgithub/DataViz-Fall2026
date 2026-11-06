@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Example 3 — Same Data, Three Binning Scales</title>
+<body style="margin:20px;font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial;">
+<h1 style="font-size:18px;margin:0 0 12px;">Example 3 — Same Data, Three Binning Scales</h1>
+<p style="margin:0 0 16px;">200 skewed values and 4 colors. Each histogram bar is colored by the class its values fall in.
+  The dashed lines are the class breaks.</p>
+<div id="charts"></div>
+
+<script src="../libs/d3.js"></script>
+<script>
+  // Seeded random numbers, so the data is the same on every reload (and matches the slides)
+  const random = d3.randomLogNormal.source(d3.randomLcg(0.42))(2.0, 0.6);
+  const data = Array.from({length: 200}, () => Math.round(random() * 10) / 10);
+
+  const colors = ["#bdd7e7", "#6baed6", "#3182bd", "#08519c"];
+
+  const examples = [
+    {
+      title: "scaleQuantize: equal-width bins",
+      scale: d3.scaleQuantize().domain(d3.extent(data)).range(colors)
+    },
+    {
+      title: "scaleQuantile: equal-count bins",
+      scale: d3.scaleQuantile().domain(data).range(colors)
+    },
+    {
+      title: "scaleThreshold: breaks you choose (5, 10, 20)",
+      scale: d3.scaleThreshold().domain([5, 10, 20]).range(colors)
+    }
+  ];
+
+  // The break values of any of the three scales
+  function breaksOf(scale) {
+    if (scale.thresholds) return scale.thresholds(); // quantize
+    if (scale.quantiles) return scale.quantiles();   // quantile
+    return scale.domain();                           // threshold: the domain IS the breaks
+  }
+
+  const width = 640, height = 210;
+  const margin = {top: 44, right: 20, bottom: 30, left: 20};
+
+  const x = d3.scaleLinear()
+          .domain([0, 38])
+          .range([margin.left, width - margin.right]);
+
+  // Histogram bins, 1 unit wide
+  const bins = d3.bin()
+          .domain(x.domain())
+          .thresholds(d3.range(0, 38, 1))(data);
+
+  const y = d3.scaleLinear()
+          .domain([0, d3.max(bins, b => b.length)])
+          .range([height - margin.bottom, margin.top]);
+
+  for (const {title, scale} of examples) {
+    const svg = d3.select("#charts")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .style("display", "block")
+            .style("margin-bottom", "16px");
+
+    // How many values got each color?
+    const counts = colors.map(c => data.filter(d => scale(d) === c).length);
+
+    svg.append("text")
+            .attr("x", margin.left)
+            .attr("y", 14)
+            .attr("font-weight", "bold")
+            .text(title);
+
+    svg.append("text")
+            .attr("x", width - margin.right)
+            .attr("y", 14)
+            .attr("text-anchor", "end")
+            .attr("fill", "#555")
+            .text("values per color: " + counts.join(", "));
+
+    // A bin can hold values of more than one class: stack one rect per color inside each bin
+    const pieces = bins.flatMap(b => {
+      let y0 = 0;
+      return colors.map(c => {
+        const n = b.filter(d => scale(d) === c).length;
+        const piece = {x0: b.x0, x1: b.x1, y0: y0, y1: y0 + n, color: c};
+        y0 += n;
+        return piece;
+      }).filter(p => p.y1 > p.y0);
+    });
+
+    svg.append("g")
+            .selectAll("rect")
+            .data(pieces)
+            .join("rect")
+            .attr("x", d => x(d.x0) + 0.5)
+            .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+            .attr("y", d => y(d.y1))
+            .attr("height", d => y(d.y0) - y(d.y1))
+            .attr("fill", d => d.color);
+
+    // Break lines and their labels
+    const breaks = breaksOf(scale);
+
+    svg.append("g")
+            .selectAll("line")
+            .data(breaks)
+            .join("line")
+            .attr("x1", d => x(d))
+            .attr("x2", d => x(d))
+            .attr("y1", margin.top - 10)
+            .attr("y2", height - margin.bottom)
+            .attr("stroke", "#333")
+            .attr("stroke-dasharray", "4 3");
+
+    svg.append("g")
+            .selectAll("text")
+            .data(breaks)
+            .join("text")
+            .attr("x", d => x(d))
+            .attr("y", margin.top - 14)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 12)
+            .text(d => d3.format(".3~f")(d));
+
+    svg.append("g")
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+            .call(d3.axisBottom(x));
+  }
+</script>
+</body>
+</html>
