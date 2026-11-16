@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../libs/d3/d3.js"></script>
+    <style>
+        .head-row{
+            font-weight: bold;
+        }
+        .body-row{
+            background-color: #DFEDE2;
+        }
+        table{
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid grey;
+        }
+    </style>
+
+</head>
+<body>
+<div class="container">
+
+</div>
+<script>
+    d3.csv("data_sample.csv").then(data=>{
+        console.log(data)
+        TableGenerator(data,".container")
+    })
+
+
+    function TableGenerator(data,container){
+        const table = d3.select(container).append("table");
+        if (data.length === 0) return;
+
+        // Use the first record only to discover column names; keep it in the body data.
+        const columns = Object.keys(data[0]);
+
+        table.append("thead")
+            .append("tr")
+            .attr("class", "head-row")
+            .selectAll("th")
+            .data(columns)
+            .join("th")
+            .attr("scope", "col")
+            .text(d => d);
+
+        const rows = table.append("tbody")
+            .selectAll("tr")
+            .data(data)
+            .join("tr")
+            .attr("class", "body-row");
+
+        rows.selectAll("td")
+            .data(d => columns.map(column => d[column]))
+            .join("td")
+            .text(d => d);
+    }
+
+</script>
+
+</body>
+</html>

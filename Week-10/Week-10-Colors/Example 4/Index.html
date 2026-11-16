@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Example 4 — Categorical Colors (scaleOrdinal)</title>
+<body style="margin:20px;font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial;">
+<h1 style="font-size:18px;margin:0 0 12px;">Example 4 — Categorical Colors with <i>scaleOrdinal</i></h1>
+<p style="margin:0 0 16px;">12 categories, three categorical schemes. When there are more categories than colors,
+  <code>scaleOrdinal</code> starts over at the first color. Repeated colors are marked.</p>
+<div id="rows"></div>
+
+<script src="../libs/d3.js"></script>
+<script>
+  const categories = ["Boston", "Chicago", "Dallas", "Denver", "Miami", "Phoenix",
+    "Portland", "Seattle", "Atlanta", "Detroit", "Austin", "Fall River"];
+
+  const schemes = [
+    {name: "d3.schemeCategory10", colors: d3.schemeCategory10},
+    {name: "d3.schemeTableau10", colors: d3.schemeTableau10},
+    {name: "d3.schemeSet2", colors: d3.schemeSet2}
+  ];
+
+  const size = 64, gap = 6;
+
+  for (const {name, colors} of schemes) {
+    const color = d3.scaleOrdinal()
+            .domain(categories)
+            .range(colors);
+
+    const svg = d3.select("#rows")
+            .append("svg")
+            .attr("width", categories.length * (size + gap))
+            .attr("height", size + 60)
+            .style("display", "block");
+
+    svg.append("text")
+            .attr("x", 0)
+            .attr("y", 14)
+            .attr("font-weight", "bold")
+            .text(`${name}  (${colors.length} colors)`);
+
+    const cell = svg.selectAll("g")
+            .data(categories)
+            .join("g")
+            .attr("transform", (d, i) => `translate(${i * (size + gap)},24)`);
+
+    cell.append("rect")
+            .attr("width", size)
+            .attr("height", size)
+            .attr("fill", d => color(d));
+
+    // Category name under each swatch
+    cell.append("text")
+            .attr("x", size / 2)
+            .attr("y", size + 14)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 11)
+            .text(d => d);
+
+    // Mark swatches whose color was already used by an earlier category
+    cell.filter((d, i) => i >= colors.length)
+            .append("text")
+            .attr("x", size / 2)
+            .attr("y", size / 2 + 4)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 12)
+            .attr("font-weight", "bold")
+            .attr("fill", "white")
+            .text("repeat");
+  }
+</script>
+</body>
+</html>

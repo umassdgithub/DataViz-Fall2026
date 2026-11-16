@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Example 1 — Color Interpolations</title>
+<body style="margin:20px;font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial;">
+<style>
+    #canvas{
+        display: flex;
+        gap:5px;
+        flex-direction: column;
+    }
+</style>
+<h1>D3 <i>scaleSequential</i> and Color Interpolations</h1>
+<div id="canvas"></div>
+
+<script src="../libs/d3.js"></script>
+<script>
+    function makeSequenceExamples(interp=d3.interpolateViridis,n=500, size=20) {
+        const color = d3.scaleSequential(interp).domain([0, n-1]);
+
+        const svg = d3.select("#canvas")
+            .append("svg")
+            .attr("width", n)
+            .attr("height", size);
+
+
+
+        svg.selectAll("rect")
+            .data(d3.range(n))
+            .enter().append("rect")
+            .attr("x", (d, i) => i)
+            .attr("y", 0)
+            .attr("width", 1)
+            .attr("height", size)
+            .attr("fill", d => color(d));
+    }
+    // list of color interpolations in d3js
+    // https://d3js.org/d3-interpolate/color
+
+    function labelFromInterpolator(fn) {
+        const raw = (fn && fn.name) ? fn.name : "";
+        return raw.replace(/^interpolate/i, "") || "Scale";
+    }
+
+
+    makeSequenceExamples();
+    makeSequenceExamples(d3.interpolateRgb("purple", "orange"));
+    makeSequenceExamples(d3.interpolateHclLong("purple", "orange"));
+    makeSequenceExamples(d3.interpolateHslLong("purple", "orange"));
+
+</script>
+</body>
+</html>

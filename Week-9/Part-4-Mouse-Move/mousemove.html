@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../libs/d3/d3.js"></script>
+    <style>
+        svg{
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+<svg>
+    <rect width=".5" height="1000" fill="black" id="r1"></rect>
+    <rect width="1000" height=".5" fill="black" id="r2"></rect>
+
+
+</svg>
+
+<script>
+d3.select("body").on("mousemove",(e)=>{
+    console.log(e)
+    d3.select("#r1").attr("x",Number(e.clientX))
+    d3.select("#r2").attr("y",Number(e.clientY))
+})
+</script>
+
+</body>
+</html>

@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="530" height="237" viewBox="0 0 530 237" font-family="Helvetica, Arial, sans-serif">
+<title>Rows only vs rows and columns</title>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#222"/>
+  </marker>
+</defs>
+<rect width="530" height="237" rx="8" fill="#ffffff" stroke="#ddd"/>
+<text x="20" y="24" font-size="14" font-weight="bold" fill="#222">Why rows AND columns must use the same order</text>
+<text x="98" y="50" font-size="12" font-weight="bold" fill="#222" text-anchor="middle">Original</text>
+<text x="61" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">A</text>
+<text x="85" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">B</text>
+<text x="109" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">C</text>
+<text x="133" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">D</text>
+<text x="44" y="89" font-size="10" fill="#3b6fb6" text-anchor="end">A</text>
+<rect x="50" y="74" width="22" height="22" fill="#2e7d32"/>
+<rect x="74" y="74" width="22" height="22" fill="#e8f5e9"/>
+<rect x="98" y="74" width="22" height="22" fill="#2e7d32"/>
+<rect x="122" y="74" width="22" height="22" fill="#e8f5e9"/>
+<text x="44" y="113" font-size="10" fill="#3b6fb6" text-anchor="end">B</text>
+<rect x="50" y="98" width="22" height="22" fill="#e8f5e9"/>
+<rect x="74" y="98" width="22" height="22" fill="#2e7d32"/>
+<rect x="98" y="98" width="22" height="22" fill="#e8f5e9"/>
+<rect x="122" y="98" width="22" height="22" fill="#2e7d32"/>
+<text x="44" y="137" font-size="10" fill="#3b6fb6" text-anchor="end">C</text>
+<rect x="50" y="122" width="22" height="22" fill="#2e7d32"/>
+<rect x="74" y="122" width="22" height="22" fill="#e8f5e9"/>
+<rect x="98" y="122" width="22" height="22" fill="#2e7d32"/>
+<rect x="122" y="122" width="22" height="22" fill="#e8f5e9"/>
+<text x="44" y="161" font-size="10" fill="#3b6fb6" text-anchor="end">D</text>
+<rect x="50" y="146" width="22" height="22" fill="#e8f5e9"/>
+<rect x="74" y="146" width="22" height="22" fill="#2e7d32"/>
+<rect x="98" y="146" width="22" height="22" fill="#e8f5e9"/>
+<rect x="122" y="146" width="22" height="22" fill="#2e7d32"/>
+<text x="268" y="50" font-size="12" font-weight="bold" fill="#b03a2e" text-anchor="middle">Rows only</text>
+<text x="231" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">A</text>
+<text x="255" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">B</text>
+<text x="279" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">C</text>
+<text x="303" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">D</text>
+<text x="214" y="89" font-size="10" fill="#3b6fb6" text-anchor="end">A</text>
+<rect x="220" y="74" width="22" height="22" fill="#2e7d32"/>
+<rect x="244" y="74" width="22" height="22" fill="#e8f5e9"/>
+<rect x="268" y="74" width="22" height="22" fill="#2e7d32"/>
+<rect x="292" y="74" width="22" height="22" fill="#e8f5e9"/>
+<text x="214" y="113" font-size="10" fill="#3b6fb6" text-anchor="end">C</text>
+<rect x="220" y="98" width="22" height="22" fill="#2e7d32"/>
+<rect x="244" y="98" width="22" height="22" fill="#e8f5e9"/>
+<rect x="268" y="98" width="22" height="22" fill="#2e7d32"/>
+<rect x="292" y="98" width="22" height="22" fill="#e8f5e9"/>
+<text x="214" y="137" font-size="10" fill="#3b6fb6" text-anchor="end">B</text>
+<rect x="220" y="122" width="22" height="22" fill="#e8f5e9"/>
+<rect x="244" y="122" width="22" height="22" fill="#2e7d32"/>
+<rect x="268" y="122" width="22" height="22" fill="#e8f5e9"/>
+<rect x="292" y="122" width="22" height="22" fill="#2e7d32"/>
+<text x="214" y="161" font-size="10" fill="#3b6fb6" text-anchor="end">D</text>
+<rect x="220" y="146" width="22" height="22" fill="#e8f5e9"/>
+<rect x="244" y="146" width="22" height="22" fill="#2e7d32"/>
+<rect x="268" y="146" width="22" height="22" fill="#e8f5e9"/>
+<rect x="292" y="146" width="22" height="22" fill="#2e7d32"/>
+<text x="438" y="50" font-size="12" font-weight="bold" fill="#2e7d32" text-anchor="middle">Rows + columns</text>
+<text x="401" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">A</text>
+<text x="425" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">C</text>
+<text x="449" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">B</text>
+<text x="473" y="68" font-size="10" fill="#e08a1e" text-anchor="middle">D</text>
+<text x="384" y="89" font-size="10" fill="#3b6fb6" text-anchor="end">A</text>
+<rect x="390" y="74" width="22" height="22" fill="#2e7d32"/>
+<rect x="414" y="74" width="22" height="22" fill="#2e7d32"/>
+<rect x="438" y="74" width="22" height="22" fill="#e8f5e9"/>
+<rect x="462" y="74" width="22" height="22" fill="#e8f5e9"/>
+<text x="384" y="113" font-size="10" fill="#3b6fb6" text-anchor="end">C</text>
+<rect x="390" y="98" width="22" height="22" fill="#2e7d32"/>
+<rect x="414" y="98" width="22" height="22" fill="#2e7d32"/>
+<rect x="438" y="98" width="22" height="22" fill="#e8f5e9"/>
+<rect x="462" y="98" width="22" height="22" fill="#e8f5e9"/>
+<text x="384" y="137" font-size="10" fill="#3b6fb6" text-anchor="end">B</text>
+<rect x="390" y="122" width="22" height="22" fill="#e8f5e9"/>
+<rect x="414" y="122" width="22" height="22" fill="#e8f5e9"/>
+<rect x="438" y="122" width="22" height="22" fill="#2e7d32"/>
+<rect x="462" y="122" width="22" height="22" fill="#2e7d32"/>
+<text x="384" y="161" font-size="10" fill="#3b6fb6" text-anchor="end">D</text>
+<rect x="390" y="146" width="22" height="22" fill="#e8f5e9"/>
+<rect x="414" y="146" width="22" height="22" fill="#e8f5e9"/>
+<rect x="438" y="146" width="22" height="22" fill="#2e7d32"/>
+<rect x="462" y="146" width="22" height="22" fill="#2e7d32"/>
+<rect x="388" y="72" width="50" height="50" fill="none" stroke="#222" stroke-width="1.5"/>
+<rect x="436" y="120" width="50" height="50" fill="none" stroke="#222" stroke-width="1.5"/>
+<text x="98" y="196" font-size="11" fill="#777" text-anchor="middle">pattern is scattered</text>
+<text x="268" y="196" font-size="11" fill="#777" text-anchor="middle">stripes, no blocks</text>
+<text x="438" y="196" font-size="11" fill="#777" text-anchor="middle">two pockets on the diagonal</text>
+<text x="20" y="222" font-size="11" fill="#777">A↔C and B↔D exchange many migrants. A shared order puts each pair together on both axes.</text>
+</svg>

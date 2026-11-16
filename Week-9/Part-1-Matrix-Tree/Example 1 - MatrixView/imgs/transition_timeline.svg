@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="490" height="278" viewBox="0 0 490 278" font-family="Helvetica, Arial, sans-serif">
+<title>Transition timeline</title>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#222"/>
+  </marker>
+</defs>
+<rect width="490" height="278" rx="8" fill="#ffffff" stroke="#ddd"/>
+<text x="20" y="24" font-size="14" font-weight="bold" fill="#222">Staggered timing: duration 1500 ms, delay 0–600 ms</text>
+<line x1="215.0" y1="44" x2="215.0" y2="226" stroke="#eee"/>
+<text x="215.0" y="240" font-size="10" fill="#777" text-anchor="middle">0 ms</text>
+<line x1="287.8571428571429" y1="44" x2="287.8571428571429" y2="226" stroke="#eee"/>
+<text x="287.8571428571429" y="240" font-size="10" fill="#777" text-anchor="middle">600 ms</text>
+<line x1="397.1428571428571" y1="44" x2="397.1428571428571" y2="226" stroke="#eee"/>
+<text x="397.1428571428571" y="240" font-size="10" fill="#777" text-anchor="middle">1500 ms</text>
+<line x1="470.0" y1="44" x2="470.0" y2="226" stroke="#eee"/>
+<text x="470.0" y="240" font-size="10" fill="#777" text-anchor="middle">2100 ms</text>
+<text x="207" y="63" font-size="11" fill="#3b6fb6" text-anchor="end">top row</text>
+<rect x="215.0" y="50" width="182.1428571428571" height="18" rx="3" fill="#3b6fb6" opacity="0.8"/>
+<text x="207" y="91" font-size="11" fill="#3b6fb6" text-anchor="end">middle row</text>
+<rect x="251.42857142857144" y="78" width="182.1428571428571" height="18" rx="3" fill="#3b6fb6" opacity="0.8"/>
+<text x="207" y="119" font-size="11" fill="#3b6fb6" text-anchor="end">bottom row</text>
+<rect x="287.8571428571429" y="106" width="182.1428571428571" height="18" rx="3" fill="#3b6fb6" opacity="0.8"/>
+<text x="207" y="157" font-size="11" fill="#e08a1e" text-anchor="end">left column</text>
+<rect x="215.0" y="144" width="182.1428571428571" height="18" rx="3" fill="#e08a1e" opacity="0.8"/>
+<text x="207" y="185" font-size="11" fill="#e08a1e" text-anchor="end">middle column</text>
+<rect x="251.42857142857144" y="172" width="182.1428571428571" height="18" rx="3" fill="#e08a1e" opacity="0.8"/>
+<text x="207" y="213" font-size="11" fill="#e08a1e" text-anchor="end">right column</text>
+<rect x="287.8571428571429" y="200" width="182.1428571428571" height="18" rx="3" fill="#e08a1e" opacity="0.8"/>
+<text x="22" y="62" font-size="10" fill="#3b6fb6">rows: g translate</text>
+<text x="22" y="156" font-size="10" fill="#e08a1e">cells x + labels</text>
+<text x="20" y="262" font-size="11" fill="#777">Delay = new position / size × 600, so the reorder sweeps from the top-left corner.</text>
+</svg>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Example 6 — Luminance Contrast</title>
+<body style="margin:20px;font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial;">
+<h1 style="font-size:18px;margin:0 0 12px;">Example 6 — Luminance Contrast for Text</h1>
+<p style="margin:0 0 16px;">Each card shows text on a background, the same card in grayscale (only luminance left),
+  and the contrast ratio. Pick your own colors in the last card.</p>
+<div id="cards" style="display:flex;flex-wrap:wrap;gap:16px;"></div>
+<p style="margin:16px 0 4px;">
+  Your colors: text <input type="color" id="fg" value="#c8a03c">
+  background <input type="color" id="bg" value="#3c5aa0">
+</p>
+<div id="custom"></div>
+
+<script src="../libs/d3.js"></script>
+<script>
+  // WCAG relative luminance of an sRGB color (0 = black, 1 = white)
+  function relativeLuminance(c) {
+    const {r, g, b} = d3.rgb(c);
+    const lin = v => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  }
+
+  // WCAG contrast ratio, from 1 (none) to 21 (black on white)
+  function contrastRatio(a, b) {
+    const [hi, lo] = d3.sort([relativeLuminance(a), relativeLuminance(b)]).reverse();
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  // The gray with the same perceived lightness (L* in CIELAB)
+  function toGray(c) {
+    return d3.lab(d3.lab(c).l, 0, 0).formatHex();
+  }
+
+  const pairs = [
+    {fg: "#000000", bg: "#ffffff", label: "black on white"},
+    {fg: "#c8a03c", bg: "#3c5aa0", label: "yellow on blue"},
+    {fg: "#e04040", bg: "#30a030", label: "red on green"},
+    {fg: "#ffffff", bg: "#ffd700", label: "white on yellow"},
+    {fg: "#ffffff", bg: "#1f4e9c", label: "white on dark blue"}
+  ];
+
+  function drawCard(sel, {fg, bg, label}) {
+    const ratio = contrastRatio(fg, bg);
+    const card = sel.append("div").style("width", "260px");
+
+    card.append("div")
+            .style("background", bg)
+            .style("color", fg)
+            .style("padding", "14px")
+            .style("font-size", "18px")
+            .text("The quick brown fox");
+
+    card.append("div")
+            .style("background", toGray(bg))
+            .style("color", toGray(fg))
+            .style("padding", "14px")
+            .style("font-size", "18px")
+            .text("The quick brown fox");
+
+    card.append("div")
+            .style("margin-top", "6px")
+            .html(`<b>${label}</b><br>
+                   L* text ${d3.lab(fg).l.toFixed(0)}, background ${d3.lab(bg).l.toFixed(0)}<br>
+                   contrast ratio ${ratio.toFixed(1)} : 1
+                   ${ratio >= 4.5 ? "(passes 4.5 : 1)" : "<span style='color:#c00'>(below 4.5 : 1)</span>"}`);
+  }
+
+  const cards = d3.select("#cards");
+  pairs.forEach(p => drawCard(cards, p));
+
+  // Interactive card
+  function update() {
+    const custom = d3.select("#custom").html("");
+    drawCard(custom, {
+      fg: document.getElementById("fg").value,
+      bg: document.getElementById("bg").value,
+      label: "your colors"
+    });
+  }
+  d3.selectAll("#fg, #bg").on("input", update);
+  update();
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Example 8 — Bivariate Colormap</title>
+<body style="margin:20px;font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial;">
+<h1 style="font-size:18px;margin:0 0 12px;">Example 8 — Bivariate Colormap (3 × 3)</h1>
+<p style="margin:0 0 16px;">Each point has two attributes, A and B (made-up data). Each attribute is split into 3 classes
+  with <code>scaleQuantile</code>, and the pair of classes picks one of 9 colors.</p>
+<div id="chart"></div>
+
+<script src="../libs/d3.js"></script>
+<script>
+  // Made-up, positively correlated data, seeded
+  const rnd = d3.randomNormal.source(d3.randomLcg(3))(0, 1);
+  const data = d3.range(300).map(() => {
+    const a = rnd();
+    const b = 0.6 * a + 0.8 * rnd();
+    return {a: 50 + 12 * a, b: 30 + 8 * b};
+  });
+
+  const n = 3;
+  // 3 x 3 palette: light gray (low, low) to dark blue (high, high)
+  const colors = [
+    "#e8e8e8", "#ace4e4", "#5ac8c8",
+    "#dfb0d6", "#a5add3", "#5698b9",
+    "#be64ac", "#8c62aa", "#3b4994"
+  ];
+
+  // Class 0, 1 or 2 for each attribute (tertiles)
+  const classA = d3.scaleQuantile().domain(data.map(d => d.a)).range(d3.range(n));
+  const classB = d3.scaleQuantile().domain(data.map(d => d.b)).range(d3.range(n));
+
+  // Class of A picks the row of the palette, class of B the column
+  const color = d => colors[classB(d.b) + classA(d.a) * n];
+
+  const width = 520, height = 420;
+  const margin = {top: 20, right: 20, bottom: 40, left: 50};
+
+  const x = d3.scaleLinear().domain(d3.extent(data, d => d.a)).nice()
+          .range([margin.left, width - margin.right]);
+  const y = d3.scaleLinear().domain(d3.extent(data, d => d.b)).nice()
+          .range([height - margin.bottom, margin.top]);
+
+  const svg = d3.select("#chart")
+          .append("svg")
+          .attr("width", width + 180)
+          .attr("height", height);
+
+  svg.append("g")
+          .selectAll("circle")
+          .data(data)
+          .join("circle")
+          .attr("cx", d => x(d.a))
+          .attr("cy", d => y(d.b))
+          .attr("r", 5)
+          .attr("fill", color)
+          .attr("stroke", "#666")
+          .attr("stroke-width", 0.5);
+
+  // Class boundaries as dashed lines
+  svg.append("g").selectAll("line.qa")
+          .data(classA.quantiles())
+          .join("line")
+          .attr("x1", d => x(d)).attr("x2", d => x(d))
+          .attr("y1", margin.top).attr("y2", height - margin.bottom)
+          .attr("stroke", "#999").attr("stroke-dasharray", "4 3");
+  svg.append("g").selectAll("line.qb")
+          .data(classB.quantiles())
+          .join("line")
+          .attr("x1", margin.left).attr("x2", width - margin.right)
+          .attr("y1", d => y(d)).attr("y2", d => y(d))
+          .attr("stroke", "#999").attr("stroke-dasharray", "4 3");
+
+  svg.append("g")
+          .attr("transform", `translate(0,${height - margin.bottom})`)
+          .call(d3.axisBottom(x));
+  svg.append("text").attr("x", width - margin.right).attr("y", height - 6)
+          .attr("text-anchor", "end").text("A →");
+  svg.append("g")
+          .attr("transform", `translate(${margin.left},0)`)
+          .call(d3.axisLeft(y));
+  svg.append("text").attr("x", 4).attr("y", margin.top - 6).text("↑ B");
+
+  // Legend: d3.cross gives every [classA, classB] pair
+  const cell = 32;
+  const legend = svg.append("g")
+          .attr("transform", `translate(${width + 40},${margin.top + 40})`);
+
+  legend.selectAll("rect")
+          .data(d3.cross(d3.range(n), d3.range(n)))
+          .join("rect")
+          .attr("x", ([ia, ib]) => ia * cell)
+          .attr("y", ([ia, ib]) => (n - 1 - ib) * cell)
+          .attr("width", cell)
+          .attr("height", cell)
+          .attr("fill", ([ia, ib]) => colors[ib + ia * n]);
+
+  legend.append("text").attr("x", 0).attr("y", n * cell + 18).text("A →");
+  legend.append("text").attr("x", -8).attr("y", -8).text("↑ B");
+</script>
+</body>
+</html>

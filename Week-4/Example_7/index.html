@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example 7 - Scatter Plot</title>
+  <script src="../libs/d3/d3.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 24px;
+      background: #f7f9fc;
+      color: #1f2937;
+    }
+    .frame {
+      max-width: 720px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #dfe7f1;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    svg {
+      width: 100%;
+      max-width: 680px;
+      height: 360px;
+      background: #f8fafc;
+      border: 1px solid #dfe7f1;
+      border-radius: 8px;
+    }
+    button {
+      margin-top: 12px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h2>Example 7 - Scatter Plot</h2>
+    <svg id="scatter" viewBox="0 0 600 300"></svg>
+    <div>
+      <button id="updateBtn">Update Data</button>
+    </div>
+  </div>
+
+  <script>
+    const points = [
+      { x: 60, y: 210, size: 12 },
+      { x: 120, y: 170, size: 18 },
+      { x: 180, y: 140, size: 20 },
+      { x: 240, y: 110, size: 16 },
+      { x: 300, y: 90, size: 22 },
+      { x: 360, y: 130, size: 18 },
+      { x: 420, y: 150, size: 26 },
+      { x: 500, y: 80, size: 14 }
+    ];
+
+    const svg = d3.select('#scatter');
+    const margin = { top: 20, right: 20, bottom: 40, left: 40 };
+    const width = 600;
+    const height = 300;
+
+    const xScale = d3.scaleLinear()
+      .domain([0, 600])
+      .range([margin.left, width - margin.right]);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, 250])
+      .range([height - margin.bottom, margin.top]);
+
+    svg.append('g')
+      .attr('transform', `translate(0, ${height - margin.bottom})`)
+      .call(d3.axisBottom(xScale));
+
+    svg.append('g')
+      .attr('transform', `translate(${margin.left}, 0)`)
+      .call(d3.axisLeft(yScale));
+
+    function render(data) {
+      const circles = svg.selectAll('circle').data(data);
+
+      circles.join('circle')
+        .attr('cx', d => xScale(d.x))
+        .attr('cy', d => yScale(d.y))
+        .attr('r', d => d.size / 2)
+        .attr('fill', '#4f46e5')
+        .attr('opacity', 0.75)
+        .style('stroke', '#1f2937')
+        .style('stroke-width', 1);
+    }
+
+    document.getElementById('updateBtn').addEventListener('click', () => {
+      const next = points.map(point => ({
+        x: point.x + Math.random() * 60 - 30,
+        y: point.y + Math.random() * 40 - 20,
+        size: point.size + Math.random() * 8
+      }));
+      render(next);
+    });
+
+    render(points);
+  </script>
+</body>
+</html>

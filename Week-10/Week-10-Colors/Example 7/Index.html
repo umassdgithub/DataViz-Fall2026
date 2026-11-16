@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Example 7 — HSL Lightness vs Perceived Lightness</title>
+<body style="margin:20px;font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial;">
+<h1 style="font-size:18px;margin:0 0 12px;">Example 7 — HSL Lightness Is Not Perceived Lightness</h1>
+<p style="margin:0 0 16px;">Each block is a row of hues with its grayscale version underneath (gray with the same L*).
+  Top: HSL with the same L = 50%. Bottom: HCL with the same L* = 65.</p>
+<div id="rows"></div>
+
+<script src="../libs/d3.js"></script>
+<script>
+  const hues = d3.range(0, 360, 30);   // 12 hues, 30° apart
+  const size = 50;
+
+  const rows = [
+    {title: "d3.hsl(h, 1, 0.5): same HSL lightness", color: h => d3.hsl(h, 1, 0.5)},
+    {title: "d3.hcl(h, 50, 65): same perceived lightness L*", color: h => d3.hcl(h, 50, 65)}
+  ];
+
+  for (const {title, color} of rows) {
+    const svg = d3.select("#rows")
+            .append("svg")
+            .attr("width", hues.length * size)
+            .attr("height", 2 * size + 50)
+            .style("display", "block")
+            .style("margin-bottom", "16px");
+
+    svg.append("text")
+            .attr("y", 14)
+            .attr("font-weight", "bold")
+            .text(title);
+
+    const g = svg.selectAll("g")
+            .data(hues)
+            .join("g")
+            .attr("transform", (h, i) => `translate(${i * size},22)`);
+
+    // the color
+    g.append("rect")
+            .attr("width", size)
+            .attr("height", size)
+            .attr("fill", h => color(h).formatHex());
+
+    // the gray with the same L*
+    g.append("rect")
+            .attr("y", size)
+            .attr("width", size)
+            .attr("height", size)
+            .attr("fill", h => d3.lab(d3.lab(color(h)).l, 0, 0).formatHex());
+
+    // L* value
+    g.append("text")
+            .attr("x", size / 2)
+            .attr("y", 2 * size + 16)
+            .attr("text-anchor", "middle")
+            .attr("font-size", 12)
+            .text(h => d3.lab(color(h)).l.toFixed(0));
+  }
+
+  d3.select("#rows").append("p").text("Numbers under each column: L* (0 = black, 100 = white).");
+</script>
+</body>
+</html>

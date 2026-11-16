@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Example 5 — Diverging Colors (scaleDiverging)</title>
+<body style="margin:20px;font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial;">
+<h1 style="font-size:18px;margin:0 0 12px;">Example 5 — Diverging Colors with <i>scaleDiverging</i></h1>
+<p style="margin:0 0 16px;">Monthly temperature difference from a long-term average (made-up data).
+  Top: a diverging scale centered at 0. Bottom: a sequential scale on the same data.</p>
+<div id="charts"></div>
+
+<script src="../libs/d3.js"></script>
+<script>
+  // Made-up anomalies in °C, seeded so they are the same on every reload
+  const random = d3.randomNormal.source(d3.randomLcg(7))(0.2, 0.7);
+  const data = d3.range(36).map(i => ({month: i + 1, value: Math.round(random() * 100) / 100}));
+
+  const maxAbs = d3.max(data, d => Math.abs(d.value));
+
+  // Diverging: [min, midpoint, max]. RdBu goes red -> blue, so flip it: warm = red, cold = blue
+  const diverging = d3.scaleDiverging()
+          .domain([-maxAbs, 0, maxAbs])
+          .interpolator(t => d3.interpolateRdBu(1 - t));
+
+  // Sequential on the same values: no special meaning for 0
+  const sequential = d3.scaleSequential()
+          .domain(d3.extent(data, d => d.value))
+          .interpolator(d3.interpolateBlues);
+
+  const width = 640, height = 220;
+  const margin = {top: 30, right: 20, bottom: 30, left: 40};
+
+  const x = d3.scaleBand()
+          .domain(data.map(d => d.month))
+          .range([margin.left, width - margin.right])
+          .padding(0.15);
+
+  const y = d3.scaleLinear()
+          .domain([-maxAbs, maxAbs])
+          .range([height - margin.bottom, margin.top]);
+
+  function drawChart(title, color) {
+    const svg = d3.select("#charts")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .style("display", "block")
+            .style("margin-bottom", "12px");
+
+    svg.append("text")
+            .attr("x", margin.left)
+            .attr("y", 16)
+            .attr("font-weight", "bold")
+            .text(title);
+
+    svg.append("g")
+            .selectAll("rect")
+            .data(data)
+            .join("rect")
+            .attr("x", d => x(d.month))
+            .attr("width", x.bandwidth())
+            .attr("y", d => y(Math.max(0, d.value)))
+            .attr("height", d => Math.abs(y(d.value) - y(0)))
+            .attr("fill", d => color(d.value));
+
+    // zero line
+    svg.append("line")
+            .attr("x1", margin.left)
+            .attr("x2", width - margin.right)
+            .attr("y1", y(0))
+            .attr("y2", y(0))
+            .attr("stroke", "#333");
+
+    svg.append("g")
+            .attr("transform", `translate(${margin.left},0)`)
+            .call(d3.axisLeft(y).ticks(5).tickFormat(d => d + "°"));
+  }
+
+  drawChart("scaleDiverging, midpoint 0 (warmer = red, colder = blue)", diverging);
+  drawChart("scaleSequential (Blues) on the same data", sequential);
+</script>
+</body>
+</html>

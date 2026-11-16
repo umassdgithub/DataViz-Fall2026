@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Matrix - U.S. between State Migration (Sorting)</title>
+    <script src="../js/d3.js"></script>
+    <style>
+        body{
+            font-family: sans-serif;
+        }
+        .title{
+            display: flex;
+            justify-content: center;
+            font-family: "Brush Script MT";
+            font-size: 22pt;
+        }
+        .controls{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+            font-size: 11pt;
+        }
+        .controls button{
+            padding: 6px 12px;
+            border: 1px solid #2e7d32;
+            background: white;
+            color: #2e7d32;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .controls button.selected{
+            background: #2e7d32;
+            color: white;
+        }
+        .container{
+            display: flex;
+            justify-content: center;
+        }
+        text{
+            fill: grey;
+            font-size: 10pt;
+        }
+        text.semiActive{
+            fill: orange;
+            font-weight: bold;
+        }
+        text.active{
+            fill: #5d1818;
+            font-weight: bold;
+        }
+        rect.cell:hover{
+            stroke: #5d1818;
+            stroke-width: 2;
+        }
+        .data_source{
+            display: flex;
+            justify-content: right;
+            margin-right: 25vw;
+            font-size: 8pt;
+        }
+        .tooltip{
+            position: absolute;
+            background: rgba(240, 240, 240, 0.9);
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+            color: #333;
+            pointer-events: none;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="tooltip"></div>
+<div class="title">Migrations from State to State</div>
+<div class="controls">
+    Order rows by:
+    <button data-order="original" class="selected">Original</button>
+    <button data-order="name">Name</button>
+    <button data-order="inflow">Total In-migration</button>
+    <button data-order="outflow">Total Out-migration</button>
+</div>
+<div class="container"></div>
+<div class="data_source">Source:&nbsp;<a href="https://www.census.gov/data/tables/time-series/demo/geographic-mobility/state-to-state-migration.html">State-to-State Migration Flows</a></div>
+<script>
+    ////////////////////////////////////////////////////////////////
+    /*          Constants and Visualization Containers           */
+    ////////////////////////////////////////////////////////////////
+    const margins = {top: 140, left: 150, right: 10, bottom: 10}
+    const size = 850
+    const width = margins.left + size + margins.right
+    const height = margins.top + size + margins.bottom
+
+    const svg = d3.select('.container')
+        .append("svg")
+        .attr("width", "80vw")
+        .attr("height", "85vh")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+    const mainGroup = svg.append("g")
+        .attr("transform", `translate(${margins.left},${margins.top})`)
+    const tooltip = d3.select(".tooltip")
+
+    const parse = v => +String(v).replace(/,/g, "") || 0
+
+    ////////////////////////////////////////////////////////////////
+    /*          Data loading and Processing                       */
+    ////////////////////////////////////////////////////////////////
+    d3.csv("./data/State_to_State_Migrations_Table_2019.csv").then(data => {
+        // columns = source states, each csv row = one destination (target) state
+        const States = data.columns.slice(1)
+
+        const rows = data.map(d => {
+            const cells = States.map(source => ({
+                target: d.Destination,
+                source: source,
+                value: parse(d[source])
+            }))
+            return {name: d.Destination, cells: cells, total: d3.sum(cells, c => c.value)}
+        })
+
+        const outflow = new Map(States.map(s => [s, d3.sum(data, d => parse(d[s]))]))
+
+        // precomputed row orders (arrays of destination names)
+        const orders = {
+            original: rows.map(r => r.name),
+            name: rows.map(r => r.name).sort(d3.ascending),
+            inflow: rows.slice().sort((a, b) => b.total - a.total).map(r => r.name),
+            outflow: rows.map(r => r.name).sort((a, b) => (outflow.get(b) || 0) - (outflow.get(a) || 0))
+        }
+
+        ////////////////////////////////////////////////////////////////
+        /*          Scales                                            */
+        ////////////////////////////////////////////////////////////////
+        // rows and columns share one order so related states cluster into blocks
+        const columnOrder = names => names.filter(n => States.includes(n))
+            .concat(States.filter(s => !names.includes(s)))
+
+        const x = d3.scaleBand().domain(columnOrder(orders.original)).range([0, size]).padding(0.15)
+        const y = d3.scaleBand().domain(orders.original).range([0, size]).padding(0.15)
+
+        const Normalizer = d3.scaleSqrt()
+            .domain([0, d3.max(rows, r => d3.max(r.cells, c => c.value))])
+
+        ////////////////////////////////////////////////////////////////
+        /*          Column labels                                     */
+        ////////////////////////////////////////////////////////////////
+        const column = mainGroup.selectAll(".column")
+            .data(States)
+            .join("g")
+            .attr("class", "column")
+            .attr("transform", d => `translate(${x(d) + x.bandwidth() / 2},-6) rotate(-60)`)
+        column.append("text")
+            .attr("class", (d, i) => `col_${i}`)
+            .attr("dy", "0.32em")
+            .text(d => d)
+
+        ////////////////////////////////////////////////////////////////
+        /*          Rows: one <g> per target, holding label + cells   */
+        ////////////////////////////////////////////////////////////////
+        const row = mainGroup.selectAll(".row")
+            .data(rows, d => d.name)
+            .join("g")
+            .attr("class", "row")
+            .attr("transform", d => `translate(0,${y(d.name)})`)
+
+        row.append("text")
+            .attr("class", (d, i) => `row_${i}`)
+            .attr("x", -8)
+            .attr("y", y.bandwidth() / 2)
+            .attr("dy", "0.32em")
+            .attr("text-anchor", "end")
+            .text(d => d.name)
+
+        row.selectAll(".cell")
+            .data(d => d.cells)
+            .join("rect")
+            .attr("class", "cell")
+            .attr("x", d => x(d.source))
+            .attr("width", x.bandwidth())
+            .attr("height", y.bandwidth())
+            .attr("fill", d => d3.interpolateGreens(Normalizer(d.value)))
+            .attr("opacity", .8)
+            .on("mouseenter", mouseEnter)
+            .on("mousemove", e => tooltip.style("left", e.pageX + 15 + "px").style("top", e.pageY + 15 + "px"))
+            .on("mouseleave", mouseLeave)
+
+        ////////////////////////////////////////////////////////////////
+        /*          Axis titles                                       */
+        ////////////////////////////////////////////////////////////////
+        mainGroup.append("text")
+            .attr("transform", `translate(-20,-20) rotate(-60)`)
+            .attr("font-size", "16pt").style("fill", "black")
+            .text("Source")
+        mainGroup.append("text")
+            .attr("x", -140).attr("y", -10)
+            .attr("font-size", "16pt").style("fill", "black")
+            .text("Target")
+
+        ////////////////////////////////////////////////
+        /*              User interaction            */
+        ////////////////////////////////////////////////
+        function labelsFor(d) {
+            return {
+                rowLabel: row.filter(r => r.name === d.target).select("text"),
+                colLabel: mainGroup.selectAll(".column text").filter(c => c === d.source)
+            }
+        }
+
+        function mouseEnter(e, d) {
+            const {rowLabel, colLabel} = labelsFor(d)
+            rowLabel.classed("active", true)
+            colLabel.classed("semiActive", true)
+            tooltip.style("opacity", 1)
+                .html(`<b>${d.source}</b> → <b>${d.target}</b><br>${d3.format(",")(d.value)}`)
+        }
+
+        function mouseLeave(e, d) {
+            const {rowLabel, colLabel} = labelsFor(d)
+            rowLabel.classed("active", false)
+            colLabel.classed("semiActive", false)
+            tooltip.style("opacity", 0)
+        }
+
+        ////////////////////////////////////////////////
+        /*         Sorting (rows and columns)       */
+        ////////////////////////////////////////////////
+        function order(key) {
+            y.domain(orders[key])
+            x.domain(columnOrder(orders[key]))
+
+            const t = svg.transition().duration(1500)
+
+            row.transition(t)
+                .delay(d => y(d.name) / size * 600)
+                .attr("transform", d => `translate(0,${y(d.name)})`)
+              .selectAll(".cell")
+                .delay(d => x(d.source) / size * 600)
+                .attr("x", d => x(d.source))
+
+            column.transition(t)
+                .delay(d => x(d) / size * 600)
+                .attr("transform", d => `translate(${x(d) + x.bandwidth() / 2},-6) rotate(-60)`)
+        }
+
+        d3.selectAll(".controls button").on("click", function () {
+            d3.selectAll(".controls button").classed("selected", false)
+            d3.select(this).classed("selected", true)
+            order(this.dataset.order)
+        })
+    })
+</script>
+
+</body>
+</html>

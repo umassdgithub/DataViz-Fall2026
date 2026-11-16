@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example 8 - Line Chart</title>
+  <script src="../libs/d3/d3.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 24px;
+      background: #f7f9fc;
+      color: #1f2937;
+    }
+    .frame {
+      max-width: 820px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #dfe7f1;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    svg {
+      width: 100%;
+      max-width: 760px;
+      height: 420px;
+      background: #f8fafc;
+      border: 1px solid #dfe7f1;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <h2>Example 8 - Line Chart with CSV Data</h2>
+    <svg id="lineChart" viewBox="0 0 760 420"></svg>
+  </div>
+
+  <script>
+    const svg = d3.select('#lineChart');
+    const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+    const width = 760;
+    const height = 420;
+
+    d3.csv('../data/yahoo_finance.csv')
+      .then(data => {
+        const parsed = data.map(d => ({
+          date: new Date(d.Date),
+          close: +d.Close
+        }));
+
+        const xScale = d3.scaleTime()
+          .domain(d3.extent(parsed, d => d.date))
+          .range([margin.left, width - margin.right]);
+
+        const yScale = d3.scaleLinear()
+          .domain([0, d3.max(parsed, d => d.close)])
+          .range([height - margin.bottom, margin.top]);
+
+        const line = d3.line()
+          .x(d => xScale(d.date))
+          .y(d => yScale(d.close))
+          .curve(d3.curveMonotoneX);
+
+        svg.append('g')
+          .attr('transform', `translate(0, ${height - margin.bottom})`)
+          .call(d3.axisBottom(xScale).ticks(6));
+
+        svg.append('g')
+          .attr('transform', `translate(${margin.left}, 0)`)
+          .call(d3.axisLeft(yScale));
+
+        svg.append('path')
+          .datum(parsed)
+          .attr('fill', 'none')
+          .attr('stroke', '#2563eb')
+          .attr('stroke-width', 2)
+          .attr('d', line);
+      })
+      .catch(error => {
+        console.error('Error loading CSV:', error);
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', height / 2)
+          .attr('text-anchor', 'middle')
+          .text('Could not load data file.');
+      });
+  </script>
+</body>
+</html>

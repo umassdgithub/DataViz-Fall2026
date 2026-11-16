@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<title>Example 2 — Automatic Thresholds (Quantize & Quantile)</title>
+<body style="margin:20px;font:14px system-ui,Segoe UI,Roboto,Helvetica,Arial;">
+<h1 style="font-size:18px;margin:0 0 12px;">Example 2 — Automatic Thresholds</h1>
+<p style="margin:0 0 16px;">Top: <code>scaleQuantize([min,max], colors)</code> (equal-width bins).<br>
+  Bottom: <code>scaleQuantile().domain(data).range(colors)</code> (data-driven bins).</p>
+<div id="legend"></div>
+
+<script src="../libs/d3.js"></script>
+<script>
+  // Draw a segmented bar from any threshold-like scale (quantize, quantile, threshold).
+  function drawBarFromScale(sel, scale, {
+    width = 420,
+    height = 24,
+    tickFormat = d3.format("~s"),
+    title = ""
+  } = {}) {
+
+
+    // Build segments by inverting each range band to its [x0, x1] extent
+    const ranges = scale.range();
+    const extents = ranges.map(r => scale.invertExtent(r));
+    const x = d3.scaleLinear()
+            .domain([d3.min(extents, d => d[0]), d3.max(extents, d => d[1])])
+            .range([0, width]);
+
+    // Room above the bar for the title
+    const top = title ? 18 : 0;
+
+    const svg = sel.append("svg")
+            .attr("width", width)
+            .attr("height", top + height + 24);
+
+    const bar = svg.append("g")
+            .attr("transform", `translate(0,${top})`);
+
+    // Title (left)
+    if (title) {
+      svg.append("text")
+              .attr("x", 0)
+              .attr("y", 12)
+              .attr("font-size", 12)
+              .attr("fill", "#555")
+              .text(title);
+    }
+
+    // Segments
+    bar.append("g").selectAll("rect")
+            .data(extents)
+            .enter().append("rect")
+            .attr("x", d => x(d[0]))
+            .attr("y", 0)
+            .attr("width", d => Math.max(0, x(d[1]) - x(d[0])))
+            .attr("height", height)
+            .attr("fill", (d, i) => ranges[i]);
+
+    // Tick labels at the lower bound and each upper threshold (except the final max)
+    const ticks = [extents[0][0]];
+    for (let i = 0; i < extents.length - 1; i++) ticks.push(extents[i][1]);
+
+    bar.append("g").selectAll("text.tick")
+            .data(ticks)
+            .enter().append("text")
+            .attr("class", "tick")
+            .attr("x", d => x(d))
+            .attr("y", height + 18)
+            .attr("text-anchor", (d, i) => i === 0 ? "start" : "middle")
+            .attr("font-size", 14)
+            .attr("fill", "#666")
+            .text(d => tickFormat(d));
+  }
+
+  const root = d3.select("#legend");
+
+  // ===== Quantize: equal-width bins over a numeric range
+  const quantizeRange = ["#d8e9ff","#98c9ff","#4c88ff","#1e3f73"]; // light->dark blue (4 bins)
+  const quantizeScale = d3.scaleQuantize([0, 100], quantizeRange);
+  drawBarFromScale(root, quantizeScale, {
+    width: 420,
+    height: 24,
+    tickFormat: d => d === 100 ? d + "%" : d, // example custom formatting
+    title: "Quantize (0–100 → 4 bins)"
+  });
+
+  root.append("div").style("height", "10px");
+
+  // ===== Quantile: data-driven bins (use any data you have)
+  const data = Array.from({length: 200}, () => Math.round(d3.randomNormal(65, 15)()));
+  const quantileRange = ["#f7d7d7","#e9aaaa","#d44a4a","#7f2222"]; // light->dark red
+  const quantileScale = d3.scaleQuantile().domain(data).range(quantileRange);
+
+  drawBarFromScale(root, quantileScale, {
+    width: 420,
+    height: 24,
+    tickFormat: d => d, // integers are fine here
+    title: "Quantile (data-driven → 4 bins)"
+  });
+
+  // For reference, you can get the computed thresholds like this:
+  // Quantize thresholds (implicit): extents via invertExtent(), or evenly spaced.
+  // Quantile thresholds:
+  // console.log('Quantiles:', quantileScale.quantiles());
+
+
+</script>
+</body>
+</html>

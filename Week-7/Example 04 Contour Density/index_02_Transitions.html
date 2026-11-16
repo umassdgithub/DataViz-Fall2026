@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Density Contour</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body {
+            font-family: "Inter", system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--color-background, #fff);
+            color: var(--color-text, #1a2e42);
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px 25px;
+            background: var(--color-surface, #f8fafc);
+            border: 1px solid var(--color-border, #e2e8f0);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .controls label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-text-muted, #64748b);
+        }
+        #bandwidth-slider {
+            width: 200px;
+            cursor: pointer;
+        }
+        #bandwidth-value {
+            font-variant-numeric: tabular-nums;
+            min-width: 2ch;
+            font-weight: 700;
+            color: var(--color-accent, #003764);
+        }
+        svg {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        g.axis {
+            font-size: 14pt;
+        }
+    </style>
+  <!-- Anti-FOUC: apply saved theme before first paint -->
+  <script>
+    (function(){var t=localStorage.getItem('dataviz-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');})();
+  </script>
+</head>
+<body>
+<div class="controls">
+    <label for="bandwidth-slider">Bandwidth:</label>
+    <input type="range" id="bandwidth-slider" min="1" max="100" value="50" step="1">
+    <span id="bandwidth-value">50</span>
+</div>
+<svg viewBox="0 0 1000 1000" width="50vw">
+</svg>
+<script>
+    // step 1 set data file
+    let data_file ="palmer_penguin_species.tsv";
+    //step 2: prepare environment for the visualization
+    let svg = d3.select('svg');
+    let bandwidth = 50; // bandwidth of the contours
+    const height = 1000;
+    const width = 1000;
+    const margin = 100;
+
+    const slider = d3.select("#bandwidth-slider");
+    const sliderValue = d3.select("#bandwidth-value");
+
+    //------------------------------------
+    //step 3: Load data using asynchronous function
+    d3.tsv(data_file).then(main); // run main when data is loaded
+
+    function main(data){
+        // x : culmen_length_mm & y: culmen_depth_mm
+
+        // calculate extents for the data using extent function (min max)
+        let x_extent = d3.extent(data, d => +d['culmen_length_mm']);
+        let y_extent = d3.extent(data, d => +d['culmen_depth_mm']);
+
+        // scale function to scale data with the svg ranges
+        let xScale = d3.scaleLinear()
+            .domain([x_extent[0] * 0.9, x_extent[1] * 1.1])
+            .range([margin, width - margin]);
+        
+        let yScale = d3.scaleLinear()
+            .domain([y_extent[0] * 0.9, y_extent[1] * 1.1])
+            .range([height - margin, margin]);
+
+        // Group for contours
+        let contourGroup = svg.append("g").attr("class", "contours");
+
+        // Color scale (will be updated)
+        let colorScale = d3.scaleSequential(d3.interpolateViridis);
+
+        // Density generator
+        const densityGenerator = d3.contourDensity()
+            .x(d => xScale(+d.culmen_length_mm))
+            .y(d => yScale(+d.culmen_depth_mm))
+            .size([width, height]);
+
+        function update(bw) {
+            bandwidth = bw;
+            sliderValue.text(bw);
+
+            const contourDensity = densityGenerator
+                .bandwidth(bw)
+                (data);
+
+            colorScale.domain(d3.extent(contourDensity, d => d.value));
+
+            // To avoid "irregular shapes" during path morphing (which happens when 
+            // topology changes), we use a cross-fade transition between groups.
+            const nextGroup = svg.insert("g", ".axis")
+                .style("opacity", 0);
+
+            nextGroup.selectAll("path")
+                .data(contourDensity)
+                .enter()
+                .append("path")
+                .attr("d", d3.geoPath())
+                .attr("stroke", "black")
+                .attr("stroke-width", "0.5px")
+                .attr("stroke-linejoin", "round")
+                .attr("fill", d => colorScale(d.value));
+
+            // Fade out and remove the old group
+            contourGroup.transition()
+                .duration(400)
+                .style("opacity", 0)
+                .remove();
+
+            // Fade in the new group
+            nextGroup.transition()
+                .duration(400)
+                .style("opacity", 1);
+
+            // Update reference to the current group
+            contourGroup = nextGroup;
+        }
+
+        // Add axes first so they stay on top
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(${margin},0)`)
+            .call(d3.axisLeft(yScale));
+            
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0,${height - margin})`)
+            .call(d3.axisBottom(xScale));
+
+        // Initial draw
+        update(bandwidth);
+
+        // Slider event
+        slider.on("input", function() {
+            update(+this.value);
+        });
+
+        // Axis labels
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height - 20)
+            .attr("text-anchor", "middle")
+            .style("font-size", "16pt")
+            .text("Culmen Length (mm)");
+
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", 30)
+            .attr("text-anchor", "middle")
+            .style("font-size", "16pt")
+            .text("Culmen Depth (mm)");
+    }
+
+</script>
+</body>
+</html>
