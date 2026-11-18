@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Global Wind Field – Canvas</title>
+  <script src="../bin/d3.js"></script>
+  <script src="../bin/topojson.v1.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow: hidden; height: 100vh; font-family: "Segoe UI", system-ui, sans-serif; }
+
+    #canvas { position: absolute; top: 0; left: 0; cursor: grab; }
+    #canvas:active { cursor: grabbing; }
+
+    /* ── Plain title ─────────────────────────────────────────── */
+    #title {
+      position: absolute; top: 1rem; left: 1.2rem;
+      pointer-events: none;
+    }
+    #title h1 { font-size: 1rem; font-weight: 700; color: #1a2e42; letter-spacing: -0.01em; }
+    #title p  { font-size: 0.67rem; color: #7a96b2; margin-top: 0.2rem; }
+
+
+    /* ── Legend ──────────────────────────────────────────────── */
+    #legend {
+      position: absolute; bottom: 4.2rem; right: 1.3rem;
+      pointer-events: none;
+    }
+    .leg-label {
+      font-size: 0.62rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #7a96b2; margin-bottom: 4px;
+    }
+    #colorbar { display: block; width: 180px; height: 8px; border-radius: 3px; }
+    #cb-labels {
+      display: flex; justify-content: space-between;
+      font-size: 0.59rem; color: #8aa0b8; margin-top: 3px;
+    }
+
+    /* ── Loading ─────────────────────────────────────────────── */
+    #loading {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; color: #6a88a8; letter-spacing: 0.06em;
+    }
+
+    /* ── Timeline bar ─────────────────────────────────────────── */
+    #timeline {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 1.1rem 1.5rem 0.8rem;
+      background: linear-gradient(transparent, rgba(242,246,251,0.94) 48%);
+      z-index: 10;
+    }
+    .tl-btn {
+      flex-shrink: 0;
+      border: none;
+      background: rgba(58,85,112,0.13);
+      color: #3a5570;
+      border-radius: 50%;
+      width: 30px; height: 30px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+      line-height: 1;
+    }
+    .tl-btn:hover { background: rgba(58,85,112,0.24); }
+    #tl-time {
+      font-size: 0.68rem;
+      color: #3a5570;
+      white-space: nowrap;
+      min-width: 118px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.01em;
+    }
+    #tl-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: #d0dce8;
+      outline: none;
+      cursor: pointer;
+    }
+    #tl-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: #3a5570;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+    }
+    #tl-slider::-moz-range-thumb {
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: #3a5570;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+    }
+    #tl-end {
+      font-size: 0.62rem;
+      color: #8aa0b8;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">Loading wind data…</div>
+<canvas id="canvas"></canvas>
+
+<div id="title">
+  <h1>Global Wind Field</h1>
+  <p>20 000 advected arrows · direction = wind vector · length = speed · 7-day simulation · scroll to zoom</p>
+</div>
+
+<div id="legend">
+  <div class="leg-label">Wind speed (m/s)</div>
+  <canvas id="colorbar" width="180" height="8"></canvas>
+  <div id="cb-labels"></div>
+</div>
+
+<!-- Timeline bar -->
+<div id="timeline">
+  <button class="tl-btn" id="tl-reset" title="Reset to start">↺</button>
+  <button class="tl-btn" id="tl-play"  title="Pause">⏸</button>
+  <div id="tl-time">Day 1 · 00:00</div>
+  <input type="range" id="tl-slider" min="0" max="604800" value="0" step="750">
+  <div id="tl-end">7 days</div>
+</div>
+
+<script>
+const W = window.innerWidth;
+const H = window.innerHeight;
+
+const canvas = document.getElementById("canvas");
+canvas.width  = W;
+canvas.height = H;
+const ctx = canvas.getContext("2d");
+
+// ── Particle config ────────────────────────────────────────────────────────
+const N_PARTICLES      = 20000;
+const DT_VISUAL        = 750;        // virtual seconds per animation frame
+const MAX_VIRTUAL_TIME = 7 * 24 * 3600; // 7 virtual days = 604 800 s
+
+// ── Timeline state ─────────────────────────────────────────────────────────
+let virtualTime = 0;
+let paused      = false;
+
+// ── Timeline DOM references ────────────────────────────────────────────────
+const btnReset  = document.getElementById("tl-reset");
+const btnPlay   = document.getElementById("tl-play");
+const sliderEl  = document.getElementById("tl-slider");
+const timeLabel = document.getElementById("tl-time");
+
+function formatVirtualTime(s) {
+  const day = Math.floor(s / 86400) + 1;
+  const h   = Math.floor((s % 86400) / 3600);
+  const m   = Math.floor((s % 3600)  / 60);
+  return `Day ${day} · ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+// ── Global state ───────────────────────────────────────────────────────────
+let xform = d3.zoomIdentity;  // current pan/zoom transform
+
+// ── Load data ──────────────────────────────────────────────────────────────
+Promise.all([
+  d3.json("../data/windData.json"),
+  d3.json("../data/earth-topo.json")
+]).then(([windData, earthTopo]) => {
+
+  document.getElementById("loading").style.display = "none";
+
+  // ── Reshape flat arrays → 2-D grids [latIdx][lonIdx] ──────────────────
+  const lonArr = windData.lon.map(Number);
+  const latArr = windData.lat.map(Number);
+  const lonStep = lonArr[1] - lonArr[0];
+  const latStep = latArr[1] - latArr[0];
+
+  function reshape(flat, cols) {
+    const n = flat.map(Number), r = [];
+    for (let i = 0; i < n.length; i += cols) r.push(n.slice(i, i + cols));
+    return r;
+  }
+
+  const speed2d = reshape(windData.wind_speed, lonArr.length);
+  const U2d     = reshape(windData.U,          lonArr.length);
+  const V2d     = reshape(windData.V,          lonArr.length);
+  const temp2d  = reshape(windData.temperature, lonArr.length);
+
+  const [speedMin, speedMax] = d3.extent(windData.wind_speed.map(Number));
+
+  // ── Scales ─────────────────────────────────────────────────────────────
+  const colorScale = d3.scaleSequential(d3.interpolatePlasma)
+    .domain([speedMin, speedMax]);
+
+  // ── Projection ─────────────────────────────────────────────────────────
+  const coastFeature = topojson.feature(earthTopo, earthTopo.objects["coastline_50m"]);
+  const MARGIN = 28;
+  const projection = d3.geoNaturalEarth1()
+    .fitExtent([[MARGIN, MARGIN], [W - MARGIN, H - MARGIN]], coastFeature);
+
+  // D3 geo-path renderer bound to the canvas context
+  const geoPath = d3.geoPath(projection, ctx);
+  const graticule = d3.geoGraticule()();
+
+  // ── Bilinear wind interpolation ─────────────────────────────────────────
+  function windAt(lon, lat) {
+    lon = Math.max(lonArr[0], Math.min(lonArr[lonArr.length - 1], lon));
+    lat = Math.max(latArr[0], Math.min(latArr[latArr.length - 1], lat));
+
+    const oi0 = Math.min(Math.floor((lon - lonArr[0]) / lonStep), lonArr.length - 2);
+    const li0 = Math.min(Math.floor((lat - latArr[0]) / latStep), latArr.length - 2);
+    const oi1 = oi0 + 1, li1 = li0 + 1;
+    const tx  = (lon - lonArr[oi0]) / lonStep;
+    const ty  = (lat - latArr[li0]) / latStep;
+
+    const bl = (q00, q10, q01, q11) =>
+      q00*(1-tx)*(1-ty) + q10*tx*(1-ty) + q01*(1-tx)*ty + q11*tx*ty;
+
+    return [
+      bl(U2d[li0][oi0], U2d[li0][oi1], U2d[li1][oi0], U2d[li1][oi1]),
+      bl(V2d[li0][oi0], V2d[li0][oi1], V2d[li1][oi0], V2d[li1][oi1]),
+    ];
+  }
+
+  // Arrow length scale: speed → pixels (shaft length)
+  const arrowLenScale = d3.scaleLinear()
+    .domain([speedMin, speedMax])
+    .range([2, 12])
+    .clamp(true);
+
+  // ── Particle factory ────────────────────────────────────────────────────
+  function makeParticle() {
+    const lon = Math.random() * 360 - 180;
+    const lat = Math.random() * 160 - 80;
+    return {
+      lon, lat,
+      initLon: lon, initLat: lat,   // saved for reset / timeline seek
+      sx: null, sy: null, cos: 0, sin: 0, speed: 0,
+    };
+  }
+
+  function resetParticles() {
+    for (const p of particles) {
+      p.lon = p.initLon;
+      p.lat = p.initLat;
+      p.sx  = null;
+    }
+  }
+
+  const particles = Array.from({ length: N_PARTICLES }, makeParticle);
+
+  // ── Update particles ────────────────────────────────────────────────────
+  // Advects every particle one frame forward and caches the screen-space
+  // position + direction cosines needed by the draw step.
+  function updateParticles() {
+    if (!paused) {
+      virtualTime += DT_VISUAL;
+      if (virtualTime >= MAX_VIRTUAL_TIME) {
+        virtualTime = MAX_VIRTUAL_TIME;
+        paused = true;
+        btnPlay.textContent = "▶";
+      }
+      sliderEl.value = virtualTime;
+      timeLabel.textContent = formatVirtualTime(virtualTime);
+    }
+
+    // Still update screen-space positions every frame (handles zoom/pan reprojection).
+    // Advection (lon/lat changes) is skipped when paused.
+    for (const p of particles) {
+      const [u, v] = windAt(p.lon, p.lat);
+      p.speed = Math.sqrt(u * u + v * v);
+
+      const angle = Math.atan2(-v, u); // negate V: canvas y grows downward
+      p.cos = Math.cos(angle);
+      p.sin = Math.sin(angle);
+
+      if (!paused) {
+        // Advect in geographic space
+        const latRad = p.lat * Math.PI / 180;
+        p.lon += (u * DT_VISUAL) / (111320 * Math.max(0.1, Math.cos(latRad)));
+        p.lat += (v * DT_VISUAL) / 111320;
+
+        if (p.lon >  180) p.lon -= 360;
+        if (p.lon < -180) p.lon += 360;
+        p.lat = Math.max(-80, Math.min(80, p.lat));
+      }
+
+      const base = projection([p.lon, p.lat]);
+      if (!base) { p.sx = null; continue; }
+      [p.sx, p.sy] = xform.apply(base);
+    }
+  }
+
+  // ── D3 zoom ─────────────────────────────────────────────────────────────
+  d3.select(canvas).call(
+    d3.zoom()
+      .scaleExtent([1, 14])
+      .extent([[0, 0], [W, H]])
+      .on("zoom", event => { xform = event.transform; })
+  );
+
+  // ── Main render loop ────────────────────────────────────────────────────
+  function draw() {
+    // Clear full canvas each frame
+    ctx.clearRect(0, 0, W, H);
+
+    // ── 1. BASE MAP ── drawn in geo-projected coordinate space
+    // ctx.setTransform applies zoom: geo coords → screen coords automatically.
+    // Line widths are divided by xform.k to keep them constant in screen pixels.
+    ctx.save();
+    ctx.setTransform(xform.k, 0, 0, xform.k, xform.x, xform.y);
+
+    // Globe sphere boundary
+    ctx.beginPath();
+    geoPath({ type: "Sphere" });
+    ctx.fillStyle = "rgba(210,230,248,0.28)";
+    ctx.fill();
+    ctx.strokeStyle = "#c4d8ec";
+    ctx.lineWidth = 1 / xform.k;
+    ctx.stroke();
+
+    // Graticule (lat/lon grid)
+    ctx.beginPath();
+    geoPath(graticule);
+    ctx.strokeStyle = "rgba(0,0,0,0.055)";
+    ctx.lineWidth = 0.5 / xform.k;
+    ctx.stroke();
+
+    // Coastlines
+    ctx.beginPath();
+    geoPath(coastFeature);
+    ctx.fillStyle = "rgba(60,100,150,0.06)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(40,80,130,0.48)";
+    ctx.lineWidth = 0.8 / xform.k;
+    ctx.stroke();
+
+    ctx.restore(); // back to screen-pixel space
+
+    // ── 2. PARTICLE ARROWS ── update positions, then draw each as an arrow
+    // Arrow direction = local wind vector; length = wind speed.
+    // Geometry is computed with trig (no ctx.save/rotate per arrow = faster).
+    updateParticles();
+
+    ctx.globalAlpha = 0.82;
+    ctx.lineWidth   = 0.75;
+
+    for (const p of particles) {
+      if (p.sx === null) continue;
+      if (p.sx < -20 || p.sx > W + 20 || p.sy < -20 || p.sy > H + 20) continue;
+
+      const len = arrowLenScale(p.speed);
+      const col = colorScale(p.speed);
+      const { sx, sy, cos, sin } = p;
+
+      // Tip of the arrow (tail is at particle position)
+      const tx = sx + len * cos;
+      const ty = sy + len * sin;
+
+      // Perpendicular unit vector for arrowhead wings
+      const hw  = 1.4;           // half-width of arrowhead
+      const bl  = Math.max(3, len * 0.35); // base-to-tip length of head
+      const bx  = tx - bl * cos;
+      const by  = ty - bl * sin;
+
+      // Shaft
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(tx, ty);
+      ctx.strokeStyle = col;
+      ctx.stroke();
+
+      // Arrowhead (filled triangle)
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(bx - sin * hw, by + cos * hw);
+      ctx.lineTo(bx + sin * hw, by - cos * hw);
+      ctx.closePath();
+      ctx.fillStyle = col;
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+
+  // ── Timeline controls ────────────────────────────────────────────────────
+
+  btnReset.addEventListener("click", () => {
+    virtualTime = 0;
+    paused = false;
+    btnPlay.textContent = "⏸";
+    sliderEl.value = 0;
+    timeLabel.textContent = formatVirtualTime(0);
+    resetParticles();
+  });
+
+  btnPlay.addEventListener("click", () => {
+    if (virtualTime >= MAX_VIRTUAL_TIME) {
+      // Auto-reset when clicking play at the end
+      virtualTime = 0;
+      sliderEl.value = 0;
+      timeLabel.textContent = formatVirtualTime(0);
+      resetParticles();
+      paused = false;
+    } else {
+      paused = !paused;
+    }
+    btnPlay.textContent = paused ? "▶" : "⏸";
+  });
+
+  // Slider seek: reset particles to t=0, then advance virtual clock to
+  // the dragged position so the animation resumes from that timestamp.
+  sliderEl.addEventListener("input", () => {
+    virtualTime = +sliderEl.value;
+    timeLabel.textContent = formatVirtualTime(virtualTime);
+    resetParticles();
+    if (virtualTime < MAX_VIRTUAL_TIME) {
+      paused = false;
+      btnPlay.textContent = "⏸";
+    } else {
+      paused = true;
+      btnPlay.textContent = "▶";
+    }
+  });
+
+  // ── Color bar legend ────────────────────────────────────────────────────
+  const cb    = document.getElementById("colorbar");
+  const cbCtx = cb.getContext("2d");
+  for (let i = 0; i < 180; i++) {
+    cbCtx.fillStyle = colorScale(speedMin + (i / 180) * (speedMax - speedMin));
+    cbCtx.fillRect(i, 0, 1, 8);
+  }
+  document.getElementById("cb-labels").innerHTML =
+    `<span>${speedMin.toFixed(0)}</span>` +
+    `<span>${((speedMin + speedMax) / 2).toFixed(0)}</span>` +
+    `<span>${speedMax.toFixed(0)}</span>`;
+
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv/
+.idea
+.qodo
+
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm
+
+# macOS Finder
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+.vscode-insiders
+
+# AI IDE tools and residue
+.cursor/
+.github/copilot/
+.copilot/
+.chatgpt/
+.claude/
+.aider*
+.codex/
+.agents/
+.continue/
+.roo/
+.windsurf/
+AGENTS.md
+CLAUDE.md
+.cursorrules
+.github/copilot-instructions.md
+
+# Environment variables
+.env
+.env.*
+.envrc
+
+# OS and system files
+.DS_Store
+Thumbs.db
+*.log
+.tmp/
+
+# Build and dependency artifacts
+dist/
+build/
+.cache/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE-specific settings
+*.code-workspace
+.history/
+
+# Misc
+.git-credentials
+
+# Large geospatial files (exceed GitHub 100MB limit)
+*.geojson
+*.topojson
+Week-6/Part-1-D3JS/DataProcessing/counties.geojson
+Week-6/Part-1-D3JS/DataProcessing/roads.geojson
+.qodo
