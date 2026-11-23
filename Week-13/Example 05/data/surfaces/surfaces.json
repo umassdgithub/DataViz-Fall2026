@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Lungs & airways",
+    "iso": -500,
+    "color": "#7fb3d5",
+    "opacity": 0.3,
+    "visible": false,
+    "file": "lungs_airways_-500.json"
+  },
+  {
+    "name": "Skin",
+    "iso": -300,
+    "color": "#e8a27c",
+    "opacity": 0.25,
+    "visible": true,
+    "file": "skin_-300.json"
+  },
+  {
+    "name": "Muscle & organs",
+    "iso": 40,
+    "color": "#c0392b",
+    "opacity": 0.4,
+    "visible": false,
+    "file": "muscle_organs_40.json"
+  },
+  {
+    "name": "Bone",
+    "iso": 300,
+    "color": "#f2ecd8",
+    "opacity": 1.0,
+    "visible": true,
+    "file": "bone_300.json"
+  },
+  {
+    "name": "Compact bone",
+    "iso": 500,
+    "color": "#f0b429",
+    "opacity": 1.0,
+    "visible": false,
+    "file": "compact_bone_500.json"
+  },
+  {
+    "name": "Dense bone",
+    "iso": 700,
+    "color": "#d9534f",
+    "opacity": 1.0,
+    "visible": false,
+    "file": "dense_bone_700.json"
+  }
+]

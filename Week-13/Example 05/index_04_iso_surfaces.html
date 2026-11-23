@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Iso-Surfaces</title>
+    <script src="libs/three.min.js"></script>
+    <script src="libs/OrbitControls.js"></script>
+    <style>
+    body {
+        margin: 0;
+        height: 100vh;
+        font-family: sans-serif;
+    }
+    canvas {
+        display: block;
+    }
+    #panel {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        width: 240px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    #panel h4 {
+        margin: 0 0 4px;
+        font-size: 13px;
+    }
+    #panel input[type=range] {
+        width: 100%;
+    }
+    .surface {
+        margin-top: 8px;
+    }
+    .swatch {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin: 0 4px 0 2px;
+        border: 1px solid #999;
+    }
+    .status {
+        color: #666;
+        font-size: 12px;
+    }
+    .hint {
+        color: #666;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+</style>
+</head>
+<body>
+<div id="panel">
+    <h4>Iso-surfaces (marching cubes)</h4>
+    <div id="surfaces"></div>
+    <div class="hint">Made in Python: see the Data Processing notebook.<br>Drag to rotate, scroll to zoom</div>
+</div>
+<script>
+
+    // Our custom made threeJS environment preparation function (same as Example 04)
+    function myThreeJS(target)
+    {
+        const spaceColor = "#f5f5f5";
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000);
+        camera.position.set(target.x + 6, target.y + 3, target.z + 14);
+
+        let renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setClearColor(spaceColor);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        window.addEventListener('resize', function () {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        // ---- Lights (see Example 04) ----
+        // The ambient light lights every surface a little, so nothing is completely black.
+        scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+        // A directional light attached to the camera: it always shines from where we look,
+        // so the side of the body we are looking at is always lit while we rotate.
+        const light = new THREE.DirectionalLight(0xffffff, 0.8);
+        light.position.set(0, 1, 1);
+        camera.add(light);
+        scene.add(camera);      // the camera must be in the scene for its light to work
+
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableZoom = true;
+        controls.target.copy(target);
+        controls.update();
+        return [scene, camera, renderer, controls]
+    }
+
+
+    function showSurfaces(meta, list)
+    {
+        // ---- Step 1: the size of the volume (same as index_01) ------------
+        const mm = meta.spacing_mm;
+        const s = 10 / Math.max(meta.columns * mm.x, meta.rows * mm.y, meta.slices * mm.z);
+        const W = meta.columns * mm.x * s;
+        const H = meta.slices * mm.z * s;
+        const D = meta.rows * mm.y * s;
+
+        let tools = myThreeJS(new THREE.Vector3(W / 2, H / 2, D / 2));
+        let scene = tools[0];
+        let camera = tools[1];
+        let renderer = tools[2];
+
+        const box = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
+            new THREE.LineBasicMaterial({color: 0x999999}));
+        box.position.set(W / 2, H / 2, D / 2);
+        scene.add(box);
+
+        // ---- Step 2: one mesh from vertices and faces ----------------------
+        // The JSON file holds two flat lists made by marching cubes in Python:
+        //   vertices: [x0, y0, z0, x1, y1, z1, ...]  in mm
+        //   faces:    [a0, b0, c0, a1, b1, c1, ...]  3 vertex indices per triangle
+        function makeSurface(data, settings) {
+            const v = data.vertices;
+            const positions = new Float32Array(v.length);
+            for (let i = 0; i < v.length; i += 3) {
+                // Same mapping as the slices in index_01 - index_03:
+                positions[i] = v[i] * s;                // x: across the body
+                positions[i + 1] = v[i + 2] * s;        // z (height in the body) -> three.js up
+                positions[i + 2] = D - v[i + 1] * s;    // y (front -> back) -> front faces the camera
+            }
+
+            // A BufferGeometry stores the points in "position" and the triangles in the "index".
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+            geometry.setIndex(data.faces);
+            // Normals (the direction each point faces) are needed for shading.
+            geometry.computeVertexNormals();
+
+            // MeshPhongMaterial reacts to the lights (Example 04).
+            const transparent = settings.opacity < 1;
+            const material = new THREE.MeshPhongMaterial({
+                color: settings.color,
+                side: THREE.DoubleSide,     // the inside of the skin is visible when we look through it
+                transparent: transparent,
+                opacity: settings.opacity,
+                // A see-through surface should not hide the surfaces behind it
+                depthWrite: !transparent
+            });
+            return new THREE.Mesh(geometry, material);
+        }
+
+        // ---- Step 3: a control row for every surface in the list -----------
+        // The surface files are large (up to 6.5 MB), so a file is downloaded
+        // only the first time its checkbox is switched on.
+        const panel = document.getElementById("surfaces");
+        list.forEach(function (settings) {
+            let mesh = null;                // not loaded yet
+            let opacity = settings.opacity;
+
+            const row = document.createElement("div");
+            row.className = "surface";
+            row.innerHTML =
+                "<label><input type='checkbox'>" +
+                "<span class='swatch' style='background:" + settings.color + "'></span>" +
+                settings.name + " (" + settings.iso + " HU)</label> <span class='status'></span>" +
+                "<input type='range' min='0.05' max='1' step='0.05' value='" + opacity + "'>";
+            panel.appendChild(row);
+            const checkbox = row.querySelector("input[type=checkbox]");
+            const status = row.querySelector(".status");
+
+            // Show or hide the surface; load it the first time it is shown
+            function show(visible) {
+                if (mesh) {
+                    mesh.visible = visible;
+                } else if (visible) {
+                    status.textContent = "loading…";
+                    checkbox.disabled = true;
+                    fetch("data/surfaces/" + settings.file)
+                        .then(r => r.json())
+                        .then(function (data) {
+                            mesh = makeSurface(data, settings);
+                            setOpacity(opacity);
+                            mesh.visible = checkbox.checked;
+                            scene.add(mesh);
+                            status.textContent = "";
+                            checkbox.disabled = false;
+                        });
+                }
+            }
+            checkbox.addEventListener("change", function () { show(this.checked); });
+
+            // Opacity. A material that switches between see-through and solid
+            // must be recompiled, so we set needsUpdate.
+            function setOpacity(value) {
+                opacity = value;
+                if (!mesh) return;
+                mesh.material.opacity = value;
+                mesh.material.transparent = value < 1;
+                mesh.material.depthWrite = value >= 1;
+                mesh.material.needsUpdate = true;
+            }
+            row.querySelector("input[type=range]").addEventListener("input", function () {
+                setOpacity(+this.value);
+            });
+
+            // Surfaces marked "visible" in surfaces.json are shown when the page opens
+            checkbox.checked = settings.visible;
+            show(settings.visible);
+        });
+
+        function render() {
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+        render();
+    }
+
+    // Load the volume size and the list of surfaces.
+    // The surface files themselves are loaded later, when they are switched on.
+    Promise.all([
+        fetch("data/ct_volume.json").then(r => r.json()),
+        fetch("data/surfaces/surfaces.json").then(r => r.json())
+    ]).then(function ([meta, list]) {
+        showSurfaces(meta, list);
+    });
+</script>
+</body>
+</html>

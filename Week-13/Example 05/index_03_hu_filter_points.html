@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Tissue Filter</title>
+    <script src="libs/three.min.js"></script>
+    <script src="libs/OrbitControls.js"></script>
+    <style>
+    body {
+        margin: 0;
+        height: 100vh;
+        font-family: sans-serif;
+    }
+    canvas {
+        display: block;
+    }
+    #panel {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        width: 250px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    #panel h4 {
+        margin: 8px 0 2px;
+        font-size: 13px;
+    }
+    #panel h4:first-child {
+        margin-top: 0;
+    }
+    #panel input[type=range] {
+        width: 100%;
+    }
+    #panel button {
+        margin: 2px 2px 2px 0;
+    }
+    .ramp {
+        height: 10px;
+        border-radius: 3px;
+        background: linear-gradient(to right, hsl(216, 80%, 50%), hsl(108, 80%, 50%), hsl(0, 80%, 50%));
+    }
+    .ends {
+        display: flex;
+        justify-content: space-between;
+        color: #666;
+        font-size: 12px;
+    }
+    .hint {
+        color: #666;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+</style>
+</head>
+<body>
+<div id="panel">
+    <h4>Tissue presets</h4>
+    <button data-range="-900,-500">Lung</button>
+    <button data-range="-150,-50">Fat</button>
+    <button data-range="20,80">Soft tissue</button>
+    <button data-range="300,3000">Bone</button>
+    <h4>Show voxels from <span id="minLabel"></span> to <span id="maxLabel"></span> HU</h4>
+    <input id="minHU" type="range" min="-1000" max="1500" step="10">
+    <input id="maxHU" type="range" min="-1000" max="1500" step="10">
+    <h4>Cut away the front: <span id="cutLabel"></span></h4>
+    <input id="cut" type="range" min="0" value="0">
+    <h4>Point size</h4>
+    <input id="size" type="range" min="0.02" max="0.2" step="0.01" value="0.06">
+    <h4>Color</h4>
+    <div class="ramp"></div>
+    <div class="ends"><span>low HU</span><span>high HU</span></div>
+    <div class="hint"><span id="count"></span> points<br>Drag to rotate, scroll to zoom</div>
+</div>
+<script>
+
+    // Our custom made threeJS environment preparation function (same as Example 04)
+    function myThreeJS(target)
+    {
+        const spaceColor = "#f5f5f5";
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000);
+        camera.position.set(target.x + 6, target.y + 4, target.z + 14);
+
+        let renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setClearColor(spaceColor);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        window.addEventListener('resize', function () {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableZoom = true;
+        controls.target.copy(target);
+        controls.update();
+        return [scene, camera, renderer, controls]
+    }
+
+
+    function showVolume(meta, hu)
+    {
+        // ---- Step 1: the size of the volume (same as index_01) ------------
+        const slices = meta.slices;     // z: bottom -> top of the body
+        const rows = meta.rows;         // y: front -> back of the body
+        const cols = meta.columns;      // x: across the body
+        const mm = meta.spacing_mm;
+        const s = 10 / Math.max(cols * mm.x, rows * mm.y, slices * mm.z);
+        const W = cols * mm.x * s;
+        const H = slices * mm.z * s;
+        const D = rows * mm.y * s;
+
+        let tools = myThreeJS(new THREE.Vector3(W / 2, H / 2, D / 2));
+        let scene = tools[0];
+        let camera = tools[1];
+        let renderer = tools[2];
+
+        const box = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
+            new THREE.LineBasicMaterial({color: 0x999999}));
+        box.position.set(W / 2, H / 2, D / 2);
+        scene.add(box);
+
+        // ---- Step 2: the filter settings -----------------------------------
+        let minHU = 300, maxHU = 3000;  // start with bone
+        let cut = 0;                    // how many rows to remove from the front
+
+        // ---- Step 3: one material for all points ---------------------------
+        // vertexColors: every point gets its own color from the geometry.
+        // sizeAttenuation: points further from the camera look smaller.
+        const material = new THREE.PointsMaterial({
+            size: 0.06,
+            vertexColors: true,
+            sizeAttenuation: true
+        });
+        let points = null;
+
+        // ---- Step 4: filter the voxels and build a point cloud -------------
+        // Loop over every voxel. Keep it only if
+        //   (a) its HU value is inside [minHU, maxHU]   (filter by value)
+        //   (b) it is behind the cut                    (filter by position)
+        // Each kept voxel becomes one point at its position in the body.
+        function buildPoints() {
+            const positions = [];
+            const colors = [];
+            const color = new THREE.Color();
+            // The top of the color ramp: maxHU, or the highest value in the data if that is lower
+            const top = Math.min(maxHU, meta.max_hu);
+            let i = 0;
+            for (let z = 0; z < slices; z++) {
+                for (let y = 0; y < rows; y++) {
+                    for (let x = 0; x < cols; x++, i++) {
+                        const v = hu[i];            // same as hu[z*rows*cols + y*cols + x]
+                        if (v < minHU || v > maxHU || y < cut) continue;
+
+                        positions.push(
+                            (x + 0.5) * mm.x * s,           // across the body
+                            (z + 0.5) * mm.z * s,           // up
+                            D - (y + 0.5) * mm.y * s);      // row 0 (front) faces the camera
+
+                        // Color: low HU of the range = blue, high HU = red
+                        const t = (v - minHU) / Math.max(1, top - minHU);
+                        color.setHSL(0.6 * (1 - t), 0.8, 0.5);
+                        colors.push(color.r, color.g, color.b);
+                    }
+                }
+            }
+
+            // Replace the old point cloud with the new one.
+            // dispose() frees the old geometry's memory on the GPU.
+            if (points) {
+                scene.remove(points);
+                points.geometry.dispose();
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+            points = new THREE.Points(geometry, material);
+            scene.add(points);
+
+            document.getElementById("count").textContent = (positions.length / 3).toLocaleString();
+            document.getElementById("minLabel").textContent = minHU;
+            document.getElementById("maxLabel").textContent = maxHU;
+            document.getElementById("cutLabel").textContent = Math.round(cut * mm.y) + " mm";
+        }
+
+        // ---- Step 5: connect the controls ----------------------------------
+        const minInput = document.getElementById("minHU");
+        const maxInput = document.getElementById("maxHU");
+        function setRange(lo, hi) {
+            minHU = lo;
+            maxHU = hi;
+            minInput.value = lo;
+            maxInput.value = Math.min(hi, +maxInput.max);
+            buildPoints();
+        }
+        document.querySelectorAll("button[data-range]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const range = this.dataset.range.split(",").map(Number);
+                setRange(range[0], range[1]);
+            });
+        });
+        minInput.addEventListener("input", function () {
+            setRange(Math.min(+this.value, maxHU), maxHU);
+        });
+        maxInput.addEventListener("input", function () {
+            setRange(minHU, Math.max(+this.value, minHU));
+        });
+
+        const cutInput = document.getElementById("cut");
+        cutInput.max = rows - 1;
+        cutInput.addEventListener("input", function () {
+            cut = +this.value;
+            buildPoints();
+        });
+        document.getElementById("size").addEventListener("input", function () {
+            material.size = +this.value;    // no rebuild needed: only the material changes
+        });
+
+        setRange(minHU, maxHU);
+
+        function render() {
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+        render();
+    }
+
+    Promise.all([
+        fetch("data/ct_volume.json").then(r => r.json()),
+        fetch("data/ct_volume.bin").then(r => r.arrayBuffer())
+    ]).then(function ([meta, buffer]) {
+        showVolume(meta, new Int16Array(buffer));
+    });
+</script>
+</body>
+</html>

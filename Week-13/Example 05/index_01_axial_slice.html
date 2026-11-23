@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Slice in 3D</title>
+    <script src="libs/three.min.js"></script>
+    <script src="libs/OrbitControls.js"></script>
+    <style>
+    body {
+        margin: 0;
+        height: 100vh;
+        font-family: sans-serif;
+    }
+    canvas {
+        display: block;
+    }
+    /* HTML control panel drawn on top of the 3D canvas */
+    #panel {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        width: 240px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    #panel h4 {
+        margin: 8px 0 2px;
+        font-size: 13px;
+    }
+    #panel h4:first-child {
+        margin-top: 0;
+    }
+    #panel input[type=range] {
+        width: 100%;
+    }
+    .hint {
+        color: #666;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+</style>
+</head>
+<body>
+<div id="panel">
+    <h4>Axial slice: <span id="sliceLabel"></span></h4>
+    <input id="slice" type="range" min="0" value="0">
+    <h4>Window (which HU values are shown)</h4>
+    <select id="window">
+        <option value="40,400">Soft tissue (L 40, W 400)</option>
+        <option value="-600,1500">Lung (L -600, W 1500)</option>
+        <option value="400,1800">Bone (L 400, W 1800)</option>
+        <option value="0,2000">Everything (L 0, W 2000)</option>
+    </select>
+    <div class="hint">Drag to rotate, scroll to zoom</div>
+</div>
+<script>
+
+    // Our custom made threeJS environment preparation function (same as Example 04)
+    function myThreeJS(target)
+    {
+        const spaceColor = "#f5f5f5";
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000);
+        // In front of the body and above it, so we look down on the slice
+        camera.position.set(target.x, target.y + 12, target.z + 12);
+
+        let renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setClearColor(spaceColor);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        window.addEventListener('resize', function () {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableZoom = true;
+        // Orbit around the center of the CT volume instead of the origin
+        controls.target.copy(target);
+        controls.update();
+        return [scene, camera, renderer, controls]
+    }
+
+
+    function showVolume(meta, hu)
+    {
+        // ---- Step 1: the size of the volume -------------------------------
+        // The CT volume is a 3D grid of numbers: slices x rows x columns.
+        const slices = meta.slices;     // 68  (z, from the bottom of the body up)
+        const rows = meta.rows;         // 256 (y, from the front of the body to the back)
+        const cols = meta.columns;      // 256 (x, across the body)
+
+        // One voxel is NOT a cube: it is 1.47 mm wide but 5 mm tall.
+        // Convert mm to scene units so the largest side of the volume is 10 units long.
+        const mm = meta.spacing_mm;
+        const s = 10 / Math.max(cols * mm.x, rows * mm.y, slices * mm.z);
+        const W = cols * mm.x * s;      // width  (three.js x)
+        const H = slices * mm.z * s;    // height (three.js y, up)
+        const D = rows * mm.y * s;      // depth  (three.js z, towards the camera)
+
+        // The value of one voxel: the data is stored slice by slice, row by row
+        function value(z, y, x) {
+            return hu[z * rows * cols + y * cols + x];
+        }
+
+        let tools = myThreeJS(new THREE.Vector3(W / 2, H / 2, D / 2));
+        let scene = tools[0];
+        let camera = tools[1];
+        let renderer = tools[2];
+
+        // ---- Step 2: show where the volume is -----------------------------
+        // A wireframe box around the whole scan, and the axes (x red, y green, z blue)
+        const box = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
+            new THREE.LineBasicMaterial({color: 0x999999}));
+        box.position.set(W / 2, H / 2, D / 2);
+        scene.add(box);
+        scene.add(new THREE.AxesHelper(2));
+
+        // ---- Step 3: a texture made from our own numbers -------------------
+        // A DataTexture is an image whose pixels we fill ourselves.
+        // Each pixel has 4 bytes: red, green, blue, alpha (0-255).
+        const pixels = new Uint8Array(cols * rows * 4);
+        const texture = new THREE.DataTexture(pixels, cols, rows, THREE.RGBAFormat);
+        texture.magFilter = THREE.LinearFilter;   // smooth instead of blocky pixels
+
+        // ---- Step 4: put the texture on a flat plane -----------------------
+        // MeshBasicMaterial ignores lights, so the image keeps its exact gray values.
+        // DoubleSide: the slice is visible from above and from below.
+        const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(W, D),
+            new THREE.MeshBasicMaterial({map: texture, side: THREE.DoubleSide}));
+        // A new plane stands upright (facing +z). Lay it flat like a floor.
+        plane.rotation.x = -Math.PI / 2;
+        scene.add(plane);
+
+        // ---- Step 5: windowing (HU -> gray) --------------------------------
+        // CT values go from -1024 (air) to over +1000 (bone), but a screen shows only
+        // 256 grays. A "window" picks the part of the HU range we care about:
+        // values below level - width/2 are black, values above level + width/2 are white.
+        let level = 40, width = 400;
+        function toGray(v) {
+            const t = (v - (level - width / 2)) / width;
+            return Math.max(0, Math.min(1, t)) * 255;
+        }
+
+        // ---- Step 6: draw slice k into the texture -------------------------
+        let k = Math.floor(slices / 2);
+        function drawSlice() {
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const g = toGray(value(k, y, x));
+                    const p = (y * cols + x) * 4;
+                    pixels[p] = g;          // red
+                    pixels[p + 1] = g;      // green
+                    pixels[p + 2] = g;      // blue
+                    pixels[p + 3] = 255;    // alpha (opaque)
+                }
+            }
+            texture.needsUpdate = true;     // tell three.js to send the new pixels to the GPU
+            // Move the plane to the height of slice k
+            plane.position.set(W / 2, (k + 0.5) * mm.z * s, D / 2);
+            document.getElementById("sliceLabel").textContent =
+                (k + 1) + " of " + slices + "  (" + Math.round((k + 0.5) * mm.z) + " mm up)";
+        }
+
+        // ---- Step 7: connect the controls ----------------------------------
+        const sliceInput = document.getElementById("slice");
+        sliceInput.max = slices - 1;
+        sliceInput.value = k;
+        sliceInput.addEventListener("input", function () {
+            k = +this.value;
+            drawSlice();
+        });
+        document.getElementById("window").addEventListener("change", function () {
+            [level, width] = this.value.split(",").map(Number);
+            drawSlice();
+        });
+        drawSlice();
+
+        // Our custom made render function
+        function render() {
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+        render();
+    }
+
+    // Load the size information (JSON) and the voxel values (binary file).
+    // The .bin file holds 2 bytes per voxel, so we read it as an Int16Array.
+    Promise.all([
+        fetch("data/ct_volume.json").then(r => r.json()),
+        fetch("data/ct_volume.bin").then(r => r.arrayBuffer())
+    ]).then(function ([meta, buffer]) {
+        const hu = new Int16Array(buffer);
+        showVolume(meta, hu);
+    });
+</script>
+</body>
+</html>

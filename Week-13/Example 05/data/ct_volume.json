@@ -1,0 +1,15 @@
+{
+  "file": "ct_volume.bin",
+  "type": "int16 little-endian, Hounsfield Units",
+  "order": "[z][y][x]: index = z * rows * columns + y * columns + x",
+  "slices": 68,
+  "rows": 256,
+  "columns": 256,
+  "spacing_mm": {
+    "z": 5.0,
+    "y": 1.473,
+    "x": 1.473
+  },
+  "min_hu": -1024,
+  "max_hu": 1521
+}

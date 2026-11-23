@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Three Views</title>
+    <script src="libs/three.min.js"></script>
+    <script src="libs/OrbitControls.js"></script>
+    <style>
+    body {
+        margin: 0;
+        height: 100vh;
+        font-family: sans-serif;
+    }
+    canvas {
+        display: block;
+    }
+    #panel {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        width: 240px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    #panel h4 {
+        margin: 8px 0 2px;
+        font-size: 13px;
+    }
+    #panel h4:first-child {
+        margin-top: 0;
+    }
+    #panel input[type=range] {
+        width: 100%;
+    }
+    .hint {
+        color: #666;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+</style>
+</head>
+<body>
+<div id="panel">
+    <h4>Axial (from above): <span id="axialLabel"></span></h4>
+    <input id="axial" type="range" min="0">
+    <h4>Coronal (from the front): <span id="coronalLabel"></span></h4>
+    <input id="coronal" type="range" min="0">
+    <h4>Sagittal (from the side): <span id="sagittalLabel"></span></h4>
+    <input id="sagittal" type="range" min="0">
+    <h4>Window</h4>
+    <select id="window">
+        <option value="40,400">Soft tissue (L 40, W 400)</option>
+        <option value="-600,1500">Lung (L -600, W 1500)</option>
+        <option value="400,1800">Bone (L 400, W 1800)</option>
+        <option value="0,2000">Everything (L 0, W 2000)</option>
+    </select>
+    <h4>Filter</h4>
+    <label><input id="hideAir" type="checkbox" checked> Hide air (HU &lt; -500)</label>
+    <div class="hint">Drag to rotate, scroll to zoom</div>
+</div>
+<script>
+
+    // Our custom made threeJS environment preparation function (same as Example 04)
+    function myThreeJS(target)
+    {
+        const spaceColor = "#f5f5f5";
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000);
+        // In front of the body, a little to the side and above it
+        camera.position.set(target.x + 8, target.y + 6, target.z + 12);
+
+        let renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setClearColor(spaceColor);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        window.addEventListener('resize', function () {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableZoom = true;
+        controls.target.copy(target);
+        controls.update();
+        return [scene, camera, renderer, controls]
+    }
+
+
+    function showVolume(meta, hu)
+    {
+        // ---- Step 1: the size of the volume (same as index_01) ------------
+        const slices = meta.slices;     // z: bottom -> top of the body
+        const rows = meta.rows;         // y: front -> back of the body
+        const cols = meta.columns;      // x: across the body
+        const mm = meta.spacing_mm;
+        const s = 10 / Math.max(cols * mm.x, rows * mm.y, slices * mm.z);
+        const W = cols * mm.x * s;      // three.js x
+        const H = slices * mm.z * s;    // three.js y (up)
+        const D = rows * mm.y * s;      // three.js z (towards the camera)
+
+        function value(z, y, x) {
+            return hu[z * rows * cols + y * cols + x];
+        }
+
+        let tools = myThreeJS(new THREE.Vector3(W / 2, H / 2, D / 2));
+        let scene = tools[0];
+        let camera = tools[1];
+        let renderer = tools[2];
+
+        const box = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
+            new THREE.LineBasicMaterial({color: 0x999999}));
+        box.position.set(W / 2, H / 2, D / 2);
+        scene.add(box);
+
+        // ---- Step 2: windowing and the "hide air" filter -------------------
+        let level = 40, width = 400;
+        let hideAir = true;
+        function toGray(v) {
+            const t = (v - (level - width / 2)) / width;
+            return Math.max(0, Math.min(1, t)) * 255;
+        }
+
+        // ---- Step 3: one function that builds a textured plane -------------
+        // width x height pixels, drawn on a plane of size planeW x planeH.
+        // getValue(i, j) returns the HU value of pixel i (left->right), j (bottom->top).
+        function makeView(width, height, planeW, planeH) {
+            const pixels = new Uint8Array(width * height * 4);
+            const texture = new THREE.DataTexture(pixels, width, height, THREE.RGBAFormat);
+            texture.magFilter = THREE.LinearFilter;
+            const material = new THREE.MeshBasicMaterial({
+                map: texture,
+                side: THREE.DoubleSide,
+                // alphaTest: pixels with alpha below 0.5 are not drawn at all,
+                // so the planes behind them show through the holes.
+                alphaTest: 0.5
+            });
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(planeW, planeH), material);
+            scene.add(mesh);
+
+            mesh.draw = function (getValue) {
+                for (let j = 0; j < height; j++) {
+                    for (let i = 0; i < width; i++) {
+                        const v = getValue(i, j);
+                        const g = toGray(v);
+                        const p = (j * width + i) * 4;
+                        pixels[p] = pixels[p + 1] = pixels[p + 2] = g;
+                        // The filter: air pixels become fully transparent
+                        pixels[p + 3] = (hideAir && v < -500) ? 0 : 255;
+                    }
+                }
+                texture.needsUpdate = true;
+            };
+            return mesh;
+        }
+
+        // ---- Step 4: the three standard medical views ----------------------
+        // Axial: a horizontal cut (like the original DICOM slices).
+        // Pixel (i, j) = column i, row j. Laid flat, row 0 (front) faces the camera.
+        const axial = makeView(cols, rows, W, D);
+        axial.rotation.x = -Math.PI / 2;
+
+        // Coronal: a vertical cut seen from the front.
+        // Pixel (i, j) = column i, slice j. Standing upright, no rotation needed.
+        const coronal = makeView(cols, slices, W, H);
+
+        // Sagittal: a vertical cut seen from the side.
+        // Pixel (i, j) = row i, slice j. Turned 90 degrees around the vertical axis.
+        const sagittal = makeView(rows, slices, D, H);
+        sagittal.rotation.y = Math.PI / 2;
+
+        // Current position of each cut (in voxels)
+        let k = Math.floor(slices / 2);     // which slice   (axial)
+        let r = Math.floor(rows / 2);       // which row     (coronal)
+        let c = Math.floor(cols / 2);       // which column  (sagittal)
+
+        function drawAxial() {
+            axial.draw(function (i, j) { return value(k, j, i); });
+            axial.position.set(W / 2, (k + 0.5) * mm.z * s, D / 2);
+            document.getElementById("axialLabel").textContent = (k + 1) + " / " + slices;
+        }
+        function drawCoronal() {
+            coronal.draw(function (i, j) { return value(j, r, i); });
+            // row 0 is the front of the body, which is the largest z in the scene
+            coronal.position.set(W / 2, H / 2, D - (r + 0.5) * mm.y * s);
+            document.getElementById("coronalLabel").textContent = (r + 1) + " / " + rows;
+        }
+        function drawSagittal() {
+            // i counts from the front (row 0) to the back, matching the 90 degree turn
+            sagittal.draw(function (i, j) { return value(j, i, c); });
+            sagittal.position.set((c + 0.5) * mm.x * s, H / 2, D / 2);
+            document.getElementById("sagittalLabel").textContent = (c + 1) + " / " + cols;
+        }
+        function drawAll() {
+            drawAxial();
+            drawCoronal();
+            drawSagittal();
+        }
+
+        // ---- Step 5: connect the controls ----------------------------------
+        function slider(id, max, start, onChange) {
+            const input = document.getElementById(id);
+            input.max = max;
+            input.value = start;
+            input.addEventListener("input", function () { onChange(+this.value); });
+        }
+        slider("axial", slices - 1, k, function (v) { k = v; drawAxial(); });
+        slider("coronal", rows - 1, r, function (v) { r = v; drawCoronal(); });
+        slider("sagittal", cols - 1, c, function (v) { c = v; drawSagittal(); });
+        document.getElementById("window").addEventListener("change", function () {
+            [level, width] = this.value.split(",").map(Number);
+            drawAll();
+        });
+        document.getElementById("hideAir").addEventListener("change", function () {
+            hideAir = this.checked;
+            drawAll();
+        });
+        drawAll();
+
+        function render() {
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+        render();
+    }
+
+    Promise.all([
+        fetch("data/ct_volume.json").then(r => r.json()),
+        fetch("data/ct_volume.bin").then(r => r.arrayBuffer())
+    ]).then(function ([meta, buffer]) {
+        showVolume(meta, new Int16Array(buffer));
+    });
+</script>
+</body>
+</html>

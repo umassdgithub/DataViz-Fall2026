@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unshaded 3D Scatterplot</title>
+    <script src="libs/three.min.js">
+    </script>
+    <script src="libs/OrbitControls.js">
+    </script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+    body {
+        margin: 0;
+        height: 100vh;
+        font-family: sans-serif;
+    }
+    canvas {
+        display: block;
+    }
+    /* HTML legend drawn on top of the 3D canvas */
+    #legend {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    #legend h4 {
+        margin: 6px 0 2px;
+        font-size: 13px;
+    }
+    #legend h4:first-child {
+        margin-top: 0;
+    }
+    .swatch {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 6px;
+        border-radius: 50%;
+    }
+    .hint {
+        color: #666;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+</style>
+</head>
+<body>
+<div id="legend"></div>
+<script>
+
+    function scatterPlot(x,y,z,r,c)
+    {
+        // Our custom made threeJS environment preparation function
+        function myThreeJS()
+        {
+            const spaceColor = "#f5f5f5";       // set the env color
+            const scene = new THREE.Scene();    // New instance of Threejs scene object
+            // This projection mode is designed to mimic the way the human eye sees.
+            // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
+            //PerspectiveCamera( fov : Number,
+            //                  aspect : Number,
+            //                  near : Number,
+            //                  far : Number )
+            const camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / window.innerHeight,
+                1,
+                1000);
+            // Place the camera in front of the center of the data, 25 units away
+            camera.position.set(5, 5, 25);
+
+            // The WebGL renderer displays scenes using WebGL.
+            // https://threejs.org/docs/#api/en/renderers/WebGLRenderer
+            // antialias gives a smoother view of the visualization
+            let renderer = new THREE.WebGLRenderer({antialias: true});
+            // Sets the color of the space
+            renderer.setClearColor(spaceColor);
+            // sets the size of the renderer
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // append the renderer to the body
+            document.body.appendChild(renderer.domElement);
+            // Make renderer sensitive to the resize of the window
+            window.addEventListener('resize', function () {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+            });
+
+
+            // No light is added in this example: MeshBasicMaterial (used below)
+            // ignores lights, so every sphere is drawn as a flat, unshaded color.
+            // Example 04 adds lights and a shaded material.
+
+            // Orbit controls allow the camera to orbit around a target.
+            // https://threejs.org/docs/#examples/en/controls/OrbitControls
+            let controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableZoom = true;
+            // The data fills the cube from 0 to 10 on every axis, so orbit around
+            // its center (5, 5, 5) instead of the origin.
+            controls.target.set(5, 5, 5);
+            controls.update();
+            return [scene, camera, renderer, controls]
+        }
+
+
+        // Our custom made render function
+        function render() {
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);}
+
+        // Our custom made function to add point to the scene
+        function point(scene, color, x, y, z, r = .1) {
+            // adding sphere to the scene
+            // https://threejs.org/docs/#api/en/geometries/SphereGeometry
+            // SphereGeometry(radius : Float,
+            //                widthSegments : Integer,
+            //                heightSegments : Integer,
+            //                phiStart : Float,
+            //                phiLength : Float,
+            //                thetaStart : Float,
+            //                thetaLength : Float)
+            const geometry = new THREE.SphereGeometry(r, 32, 32);
+
+            // MeshBasicMaterial ignores lights, so the spheres have no shading
+            let material = new THREE.MeshBasicMaterial();
+
+            material.color.setStyle(color);
+            let mesh = new THREE.Mesh(geometry, material);
+
+            mesh.position.set(x, y, z);
+            mesh.rotation.set(0, 0, 0);
+            scene.add(mesh);
+        }
+
+        // Our custom made function to add a text label to the scene.
+        // The text is drawn on an HTML canvas, and the canvas is used as the
+        // texture of a sprite (a flat image that always faces the camera).
+        function label(scene, text, color, x, y, z) {
+            const fontSize = 48;
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            ctx.font = fontSize + "px sans-serif";
+            canvas.width = Math.ceil(ctx.measureText(text).width) + 20;
+            canvas.height = fontSize + 20;
+            // changing the canvas size resets the font, so set it again
+            ctx.font = fontSize + "px sans-serif";
+            ctx.fillStyle = color;
+            ctx.textBaseline = "middle";
+            ctx.fillText(text, 10, canvas.height / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.minFilter = THREE.LinearFilter;
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: texture, transparent: true}));
+            const height = 0.6;
+            sprite.scale.set(height * canvas.width / canvas.height, height, 1);
+            sprite.position.set(x, y, z);
+            scene.add(sprite);
+        }
+
+
+
+        let tools = myThreeJS()
+        let scene = tools[0];
+        let camera = tools[1];
+        let renderer = tools[2];
+        // add the axis between 0 and 10 (x = red, y = green, z = blue)
+        scene.add(new THREE.AxesHelper(10));
+        // use d3 scale linear to create a scaleLinear
+        function getMinMax(A){
+            return d3.extent(A,function (d) {
+                return d;
+            })}
+        let scaleX = d3.scaleLinear().domain(getMinMax(x)).range([0,10]);
+        let scaleY = d3.scaleLinear().domain(getMinMax(y)).range([0,10]);
+        let scaleZ = d3.scaleLinear().domain(getMinMax(z)).range([0,10]);
+        // A sqrt scale should start at 0, so a radius is proportional to the
+        // square root of the value and twice the mass looks twice as big (in area).
+        let scaleR = d3.scaleSqrt().domain([0, d3.max(r)]).range([0,.3]);
+        let unique = [...new Set(c)];
+
+        let colourSet = d3.scaleOrdinal(d3.schemeCategory10).domain(unique)
+
+        x.forEach(function (d,i) {
+                point(scene,
+                    colourSet(c[i]),
+                    scaleX(x[i]),
+                    scaleY(y[i]),
+                    scaleZ(z[i]),
+                    scaleR(r[i]));})
+
+        // Axis labels at the end of each axis, in the same color as the axis line
+        function range(A) {
+            let e = getMinMax(A);
+            return " (" + e[0] + "–" + e[1] + ")";
+        }
+        label(scene, "Culmen length, mm" + range(x), "#cc0000", 12.5, 0, 0);
+        label(scene, "Culmen depth, mm" + range(y), "#008800", 0, 10.8, 0);
+        label(scene, "Flipper length, mm" + range(z), "#0000cc", 0, 0, 11);
+
+        // HTML legend: species colors, axes and size
+        let legend = d3.select("#legend");
+        legend.append("h4").text("Species");
+        unique.forEach(function (s) {
+            let row = legend.append("div");
+            row.append("span").attr("class", "swatch").style("background", colourSet(s));
+            row.append("span").text(s);
+        });
+        legend.append("h4").text("Axes");
+        legend.append("div").html("<b style='color:#cc0000'>x</b> culmen length (mm)");
+        legend.append("div").html("<b style='color:#008800'>y</b> culmen depth (mm)");
+        legend.append("div").html("<b style='color:#0000cc'>z</b> flipper length (mm)");
+        legend.append("h4").text("Size");
+        legend.append("div").text("Body mass (g)");
+        legend.append("div").attr("class", "hint").text("Drag to rotate, scroll to zoom");
+
+        render();}
+    d3.tsv("data/palmer_penguin_species.tsv").then(function (data)
+    {
+        let x=[];
+        let y=[];
+        let z=[];
+        let r =[]
+        let c=[];
+        d3.map(data,function (d)
+        {
+            x.push(+d.culmen_length_mm)
+            y.push(+d.culmen_depth_mm)
+            z.push(+d.flipper_length_mm)
+            r.push(+d.body_mass_g)
+            c.push(d.species)
+        })
+
+        scatterPlot(x,y,z,r,c);
+    });
+</script>
+</body>
+</html>
