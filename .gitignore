@@ -70,6 +70,7 @@ yarn-error.log
 .windsurf/
 AGENTS.md
 CLAUDE.md
+specs.md
 .cursorrules
 .github/copilot-instructions.md
 

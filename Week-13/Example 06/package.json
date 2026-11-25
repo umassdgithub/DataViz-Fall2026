@@ -1,0 +1,17 @@
+{
+  "name": "bluesky-hashtag-network",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live network of Bluesky hashtags that appear in the same post, drawn with D3",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+    <style>
+      .panel { fill: #f4f6f8; stroke: #d5dbe1; stroke-width: 1.5; }
+      .panelTitle { font-size: 18px; font-weight: bold; fill: #333; }
+      .box { fill: #fff; stroke: steelblue; stroke-width: 2; }
+      .ext { fill: #fff; stroke: #888; stroke-width: 2; }
+      .file { font-family: Menlo, Monaco, monospace; font-size: 15px; font-weight: bold; fill: steelblue; }
+      .extTitle { font-size: 16px; font-weight: bold; fill: #333; }
+      .desc { font-size: 13px; fill: #444; }
+      .edge { stroke: #555; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .edgeLabel { font-size: 13px; fill: #222; font-weight: bold; }
+      .edgeNote { font-size: 12px; fill: #666; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="560" fill="#ffffff"/>
+
+  <!-- Column 1: Bluesky -->
+  <text class="panelTitle" x="145" y="62" text-anchor="middle">Bluesky</text>
+  <rect class="ext" x="30" y="80" width="230" height="110" rx="10"/>
+  <text class="extTitle" x="145" y="115" text-anchor="middle">Jetstream</text>
+  <text class="desc" x="145" y="140" text-anchor="middle">every new post on Bluesky,</text>
+  <text class="desc" x="145" y="158" text-anchor="middle">as JSON events</text>
+
+  <!-- Column 2: Server -->
+  <rect class="panel" x="320" y="35" width="550" height="495" rx="14"/>
+  <text class="panelTitle" x="595" y="62" text-anchor="middle">Server (Node.js)</text>
+
+  <rect class="box" x="350" y="80" width="240" height="110" rx="8"/>
+  <text class="file" x="470" y="110" text-anchor="middle">lib/jetstream.js</text>
+  <text class="desc" x="470" y="135" text-anchor="middle">keep the hashtags and the text</text>
+  <text class="desc" x="470" y="153" text-anchor="middle">of new posts; drop the</text>
+  <text class="desc" x="470" y="171" text-anchor="middle">author's account ID</text>
+
+  <rect class="box" x="350" y="245" width="240" height="115" rx="8"/>
+  <text class="file" x="470" y="275" text-anchor="middle">lib/graph.js</text>
+  <text class="desc" x="470" y="300" text-anchor="middle">posts from the last 5 minutes</text>
+  <text class="desc" x="470" y="318" text-anchor="middle">→ top 60 tags + links</text>
+  <text class="desc" x="470" y="336" text-anchor="middle">+ 10 latest posts per tag</text>
+
+  <rect class="box" x="650" y="245" width="190" height="115" rx="8"/>
+  <text class="file" x="745" y="275" text-anchor="middle">lib/storage.js</text>
+  <text class="desc" x="745" y="300" text-anchor="middle">save every post;</text>
+  <text class="desc" x="745" y="318" text-anchor="middle">load the last 5 minutes</text>
+  <text class="desc" x="745" y="336" text-anchor="middle">when the server starts</text>
+
+  <!-- data file (document shape) -->
+  <path d="M650,85 h165 l25,25 v80 h-190 z" fill="#fff" stroke="#888" stroke-width="2"/>
+  <path d="M815,85 v25 h25" fill="none" stroke="#888" stroke-width="2"/>
+  <text class="file" x="745" y="135" text-anchor="middle" style="fill:#555">data/posts.jsonl</text>
+  <text class="desc" x="745" y="158" text-anchor="middle">one post per line:</text>
+  <text class="desc" x="745" y="176" text-anchor="middle">{ time, tags, text }</text>
+
+  <rect class="box" x="350" y="415" width="240" height="95" rx="8"/>
+  <text class="file" x="470" y="445" text-anchor="middle">server.js</text>
+  <text class="desc" x="470" y="470" text-anchor="middle">/api/stream sends the graph</text>
+  <text class="desc" x="470" y="488" text-anchor="middle">to every open page</text>
+
+  <!-- Column 3: Browser -->
+  <rect class="panel" x="920" y="35" width="250" height="495" rx="14"/>
+  <text class="panelTitle" x="1045" y="62" text-anchor="middle">Browser (D3)</text>
+
+  <!-- small network picture -->
+  <g stroke="#999" stroke-width="2" stroke-opacity="0.7">
+    <line x1="1000" y1="150" x2="1070" y2="120"/>
+    <line x1="1000" y1="150" x2="1060" y2="200"/>
+    <line x1="1070" y1="120" x2="1060" y2="200"/>
+    <line x1="1060" y1="200" x2="1120" y2="250"/>
+    <line x1="1060" y1="200" x2="990" y2="270"/>
+    <line x1="990" y1="270" x2="1060" y2="320"/>
+    <line x1="1120" y1="250" x2="1060" y2="320"/>
+  </g>
+  <g fill="steelblue" stroke="#fff" stroke-width="2">
+    <circle cx="1000" cy="150" r="14"/>
+    <circle cx="1070" cy="120" r="9"/>
+    <circle cx="1060" cy="200" r="20"/>
+    <circle cx="1120" cy="250" r="10"/>
+    <circle cx="990" cy="270" r="12"/>
+    <circle cx="1060" cy="320" r="8"/>
+  </g>
+
+  <rect class="box" x="945" y="400" width="200" height="110" rx="8"/>
+  <text class="file" x="1045" y="430" text-anchor="middle">public/main.js</text>
+  <text class="desc" x="1045" y="455" text-anchor="middle">update the force layout</text>
+  <text class="desc" x="1045" y="473" text-anchor="middle">with the new nodes, links</text>
+  <text class="desc" x="1045" y="491" text-anchor="middle">and tooltip posts</text>
+
+  <!-- Edges -->
+  <!-- Jetstream -> jetstream.js -->
+  <line class="edge" x1="262" y1="135" x2="346" y2="135"/>
+  <text class="edgeLabel" x="304" y="125" text-anchor="middle">WebSocket</text>
+
+  <!-- jetstream.js -> graph.js -->
+  <line class="edge" x1="470" y1="192" x2="470" y2="241"/>
+  <text class="edgeLabel" x="480" y="222">addPost(tags, text)</text>
+
+  <!-- graph.js -> storage.js -->
+  <line class="edge" x1="592" y1="290" x2="646" y2="290"/>
+  <text class="edgeNote" x="620" y="279" text-anchor="middle">save</text>
+  <!-- storage.js -> graph.js -->
+  <line class="edge" x1="648" y1="318" x2="594" y2="318"/>
+  <text class="edgeNote" x="620" y="336" text-anchor="middle">load</text>
+
+  <!-- storage.js <-> data file -->
+  <line class="edge" x1="745" y1="243" x2="745" y2="194" style="marker-start:url(#arrow)"/>
+  <text class="edgeNote" x="755" y="222">append / read</text>
+
+  <!-- graph.js -> server.js -->
+  <line class="edge" x1="470" y1="362" x2="470" y2="411"/>
+  <text class="edgeLabel" x="480" y="392">getGraph()</text>
+
+  <!-- server.js -> main.js -->
+  <line class="edge" x1="592" y1="462" x2="941" y2="462"/>
+  <text class="edgeLabel" x="765" y="450" text-anchor="middle">Server-Sent Events, every 2 s</text>
+  <text class="edgeNote" x="765" y="482" text-anchor="middle">JSON: { posts, nodes, links }</text>
+</svg>
