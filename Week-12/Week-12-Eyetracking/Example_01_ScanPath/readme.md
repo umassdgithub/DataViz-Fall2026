@@ -150,7 +150,7 @@ fixation_points.append('circle')
             .attr('fill',d=>pupil_colorScale(d.pupil_diameter))
             .attr('class','fixations');
 ```
-<img src="../images/animation.gif" width="80%">
+<img src="../images/animation.gif" width="80%" />
 ```
 fixation_points
             .append('text')

@@ -1,6 +1,6 @@
 # Example 03 - 3D Scatterplot Without Shading
 
-<img src='../images/scatter01.gif' alt='A rotating 3D scatterplot of penguins with flat-colored spheres'>
+<img src='../images/scatter01.gif' alt='A rotating 3D scatterplot of penguins with flat-colored spheres' />
 
 This example plots the Palmer penguins data (`data/palmer_penguin_species.tsv`) as a 3D scatterplot.
 It uses the same strategy as Example 02: a function prepares the scene, camera, renderer and controls,

@@ -10,7 +10,7 @@
     The MAPBOX style used is the public style: mapbox://styles/mapbox/streets-v11 and a public token is used with it.
     </p>
     <div style="display:flex;justify-content: center">
-    <img src="imgs/deckGL.gif" width="400px">
+    <img src="imgs/deckGL.gif" width="400px" />
     </div>
 
 - <h2>Example 2</h2>

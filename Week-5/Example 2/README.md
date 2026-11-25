@@ -5,7 +5,7 @@ In addition to the transformation of the data to stack, using d3.area,
 we can generate area chart (path) using powerful d3.area generator.
 
 In the example below, we will generate an area chart using the sample data.
-<img src="../imgs/area.gif" width="500px">
+<img src="../imgs/area.gif" width="500px" />
 
 <ol>
 

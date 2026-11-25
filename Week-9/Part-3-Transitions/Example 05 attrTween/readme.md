@@ -98,7 +98,7 @@ Each planet's movement is calculated based on its orbital period and distance fr
 
 This visualization provides a scaled and animated model of our solar system, offering an engaging way to understand the relative motions of planets.
 
-<img src="../images/anim06.gif" width=400px/>
+<img src="../images/anim06.gif" width="400px"/>
 
 ## Application of attrTween
 

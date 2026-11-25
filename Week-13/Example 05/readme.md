@@ -1,6 +1,6 @@
 # Example 05 - CT Scan (DICOM) in 3D: Slices, Filters and Iso-Surfaces
 
-<img src='../images/dicom_04_iso_surfaces.png' alt='Skin and bone iso-surfaces of a chest CT scan in three.js'>
+<img src='../images/dicom_04_iso_surfaces.png' alt='Skin and bone iso-surfaces of a chest CT scan in three.js' />
 
 This example shows the chest CT scan from **Week 11** (`Week-11/Medical-Data-DICOM`) in three.js.
 It builds on Examples 03 and 04: the same `myThreeJS()` set-up function, `OrbitControls`, an HTML panel on top
@@ -49,7 +49,7 @@ All four pages place the volume the same way, scaled so its longest side is 10 u
 
 ## Step 1: one slice (`index_01_axial_slice.html`)
 
-<img src='../images/dicom_01_axial_slice.png' alt='One axial CT slice drawn on a plane inside the outline of the volume'>
+<img src='../images/dicom_01_axial_slice.png' alt='One axial CT slice drawn on a plane inside the outline of the volume' />
 
 - A **`DataTexture`** is an image whose pixels we fill ourselves: 4 bytes (red, green, blue, alpha) per pixel.
 - **Windowing** turns HU into gray. A screen has only 256 grays, but CT goes from −1024 to over +1000 HU, so we choose a
@@ -59,7 +59,7 @@ All four pages place the volume the same way, scaled so its longest side is 10 u
 
 ## Step 2: three views (`index_02_three_views.html`)
 
-<img src='../images/dicom_02_three_views.png' alt='Axial, coronal and sagittal CT cuts crossing each other, with the air hidden'>
+<img src='../images/dicom_02_three_views.png' alt='Axial, coronal and sagittal CT cuts crossing each other, with the air hidden' />
 
 The same 3D array cut in three directions, the standard views in medical imaging:
 
@@ -74,7 +74,7 @@ those pixels at all, so you can see the other planes through the holes.
 
 ## Step 3: filter voxels by value (`index_03_hu_filter_points.html`)
 
-<img src='../images/dicom_03_hu_filter_points.png' alt='The voxels between 300 and 3000 HU shown as points: the rib cage and spine'>
+<img src='../images/dicom_03_hu_filter_points.png' alt='The voxels between 300 and 3000 HU shown as points: the rib cage and spine' />
 
 Every voxel whose HU value is inside `[min, max]` becomes one point; all other voxels are filtered out.
 The presets use the HU ranges from Week 11: lung (−900 to −500), fat (−150 to −50), soft tissue (20 to 80) and bone (300 and more).

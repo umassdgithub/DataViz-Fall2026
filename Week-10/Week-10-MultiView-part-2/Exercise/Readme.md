@@ -26,5 +26,5 @@ Modify X Axis = culmen_length_mm (consider the xScale function)
 </li>
 </ol>
 
-<img src="../images/Example4.png" width=500px />
+<img src="../images/Example4.png" width="500px" />
 

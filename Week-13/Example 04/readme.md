@@ -1,6 +1,6 @@
 # Example 04 - 3D Scatterplot With Lighting and Shaded Material
 
-<img src='../images/scatter02.gif' alt='A rotating 3D scatterplot of penguins with shaded spheres'>
+<img src='../images/scatter02.gif' alt='A rotating 3D scatterplot of penguins with shaded spheres' />
 
 This example is the same scatterplot as Example 03 (same data, axes, size and color encodings), with
 lighting added so the spheres look three-dimensional.

@@ -21,7 +21,7 @@ Initially the data needs to be stacked:
 
 The stackedSeries now should look like:
 
-<img src="../imgs/StackedData.png" width=400px>
+<img src="../imgs/StackedData.png" width="400px" />
 
 After defining the xScale and yScale functions we can go ahead and use area generator
 
@@ -49,7 +49,7 @@ Finally, we add the area paths to the group
 ```
 
 
-<img src="../imgs/AreaChart.png" width=400px>
+<img src="../imgs/AreaChart.png" width="400px" />
 
 </li>
 <li>

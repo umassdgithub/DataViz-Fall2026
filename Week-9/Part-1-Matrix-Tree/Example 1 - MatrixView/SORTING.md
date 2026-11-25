@@ -10,7 +10,7 @@ The goal of sorting is to find **pockets**: groups of states that exchange many 
 
 Every target state (one CSV row) gets its own `<g class="row">`. That group holds the state's label and all of its cells.
 
-<img src="./imgs/matrix_structure.svg" width="470" alt="Each row is a group containing a label and cells">
+<img src="./imgs/matrix_structure.svg" width="470" alt="Each row is a group containing a label and cells" />
 
 ```javascript
 const row = mainGroup.selectAll(".row")
@@ -46,7 +46,7 @@ const y = d3.scaleBand().domain(orders.original).range([0, size]).padding(0.15)
 
 The slot positions are fixed, so sorting doesn't change them. Sorting only changes **which name owns which slot**.
 
-<img src="./imgs/band_scale.svg" width="470" alt="Changing the band scale domain reassigns names to slots">
+<img src="./imgs/band_scale.svg" width="470" alt="Changing the band scale domain reassigns names to slots" />
 
 The available orders are computed once, when the data loads. Each order is a plain array of state names:
 
@@ -72,7 +72,7 @@ const orders = {
 
 If you reorder only the rows, cells that belong together end up in the same rows but stay scattered across the columns, so you see stripes instead of blocks. A pocket appears only when the **same** permutation is applied to both axes.
 
-<img src="./imgs/rows_vs_both.svg" width="530" alt="Sorting rows only gives stripes; sorting both axes gives blocks">
+<img src="./imgs/rows_vs_both.svg" width="530" alt="Sorting rows only gives stripes; sorting both axes gives blocks" />
 
 The code gives `x` the same order as `y`. The helper `columnOrder` keeps only names that are also columns and appends any leftover columns, so a mismatch in the CSV can't drop a column:
 
@@ -119,7 +119,7 @@ Each cell moves in two directions at the same time:
 
 Because both transitions run together, the cell appears to slide diagonally to its new place.
 
-<img src="./imgs/cell_motion.svg" width="380" alt="A cell's motion is the sum of its row's vertical move and its own horizontal move">
+<img src="./imgs/cell_motion.svg" width="380" alt="A cell's motion is the sum of its row's vertical move and its own horizontal move" />
 
 ### Staggered timing
 
@@ -130,7 +130,7 @@ All transitions share the same duration (`t`, 1500 ms), but each one has its own
 
 The result is a wave that sweeps from the top-left corner, which makes individual states easier to follow than if everything moved at once.
 
-<img src="./imgs/transition_timeline.svg" width="490" alt="Timeline of staggered row and column transitions">
+<img src="./imgs/transition_timeline.svg" width="490" alt="Timeline of staggered row and column transitions" />
 
 > **Why `transition.selectAll(".cell")` works:** calling `selectAll` on a transition creates child transitions for the matching elements. They inherit the parent's timing, and here we override only their `delay`. This differs from `selection.selectAll(...).data(...)`. Transitions can't bind data, so animations always work on elements that already exist.
 

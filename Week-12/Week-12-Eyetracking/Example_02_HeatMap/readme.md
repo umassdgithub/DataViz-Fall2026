@@ -118,4 +118,4 @@ Heatmap Function
     }
 ```
 
-<img src="../images/HeatMap.gif">
+<img src="../images/HeatMap.gif" />

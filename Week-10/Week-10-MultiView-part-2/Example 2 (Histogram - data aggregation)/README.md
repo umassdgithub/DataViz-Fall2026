@@ -4,4 +4,4 @@ A joint plot is a form of multiview visualization which uses a plot of two varia
 
 In this example the horizontal and vertical bar charts for the joint plot are made and a function for each plot is defined.
 
-<img src="../images/Example2.png" width=450px>
+<img src="../images/Example2.png" width="450px" />

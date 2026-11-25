@@ -15,7 +15,7 @@ Learn how to load and visualize geographic data formats (GeoJSON, TopoJSON, Shap
 
 ### 1.1 Line Visualization 
 
-<img src="./img/E1-1.png" width="80%">
+<img src="./img/E1-1.png" width="80%" />
 
 Demonstrates drawing geographic line features using D3.js projections.
 
@@ -25,7 +25,7 @@ Learn how to load and parse different geographic data formats in D3.js.
 
 ### 1.3 Choropleth Map
 
-<img src="./img/E1-3.png" width="80%">
+<img src="./img/E1-3.png" width="80%" />
 
 Create a choropleth map that colors regions based on data values using D3.js.
 
@@ -39,19 +39,19 @@ Create distorted geographic maps where area is proportional to a data variable.
 
 ### Example 1 - QGIS Cartogram
 
-<img src="Part-2-Cartogram/imgs/QGIS.png" width="80%">
+<img src="Part-2-Cartogram/imgs/QGIS.png" width="80%" />
 
 Creating cartograms using the QGIS cartogram3 plugin.
 
 ### Example 2 - D3JS Cartogram Map
 
-<img src="Part-2-Cartogram/imgs/Cartogram.png" width="80%">
+<img src="Part-2-Cartogram/imgs/Cartogram.png" width="80%" />
 
 An interactive D3JS cartogram visualization showing US election results by county. Areas are distorted based on population data.
 
 ### Example 3 - Transition between Choropleth and Cartogram
 
-<img src="Part-2-Cartogram/imgs/transition.gif" width="80%">
+<img src="Part-2-Cartogram/imgs/transition.gif" width="80%" />
 
 Animated transition between a traditional choropleth map and a cartogram representation.
 
@@ -67,25 +67,25 @@ Create advanced 3D geospatial visualizations using Deck.gl layered on top of Map
 
 ### Example 1 - Choropleth with Deck.gl
 
-<img src="Part-3-DeckGL_MapBox/imgs/deckGL.gif" width="80%">
+<img src="Part-3-DeckGL_MapBox/imgs/deckGL.gif" width="80%" />
 
 Overlay a choropleth map on a Deck.gl/Mapbox visualization showing Massachusetts population data.
 
 ### Example 2 - Column Layer
 
-<img src="Part-3-DeckGL_MapBox/imgs/Example2.gif" width="80%">
+<img src="Part-3-DeckGL_MapBox/imgs/Example2.gif" width="80%" />
 
 Use Deck.gl's ColumnLayer to display 3D bar charts at geographic locations.
 
 ### Example 3 - Grid Cell Layer
 
-<img src="Part-3-DeckGL_MapBox/imgs/Example3.gif" width="80%">
+<img src="Part-3-DeckGL_MapBox/imgs/Example3.gif" width="80%" />
 
 Visualize geographic data using hexagonal or square grid cells with aggregated values.
 
 ### Example 4 - 3D Extruded Features
 
-<img src="Part-3-DeckGL_MapBox/imgs/Example4.gif" width="80%">
+<img src="Part-3-DeckGL_MapBox/imgs/Example4.gif" width="80%" />
 
 Create 3D perspective views with extruded geometries proportional to data values.
 

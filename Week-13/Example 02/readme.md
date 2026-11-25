@@ -3,7 +3,7 @@
 In Example 01, you learnt how to set up the scene, add a camera, and add items. In this example we will
 use the same tools to make the following visualization:
 
-<img src='../images/cube.gif' alt='A rotating grid of small cubes whose red, green and blue color values change along the x, y and z axes'>
+<img src='../images/cube.gif' alt='A rotating grid of small cubes whose red, green and blue color values change along the x, y and z axes' />
 
 Run it through a local server (Live Server or `python3 -m http.server`), as described in the
 [main README](../README.md#how-to-run-the-examples).

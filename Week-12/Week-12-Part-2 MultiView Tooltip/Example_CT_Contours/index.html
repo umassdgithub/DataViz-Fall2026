@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Scan Contours</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+    <div>
+        <h1>CT Scan Images</h1>
+    </div>
+    <div class="slider">
+        <label for="binCount">Bin Count</label>
+        <input type="range" id="binCount" min="2" max="20" value="10" step="1" />
+
+        <label for="minThreshold">Min Threshold</label>
+        <input type="range" id="minThreshold" min="0" max="100" value="0" />
+
+        <label for="maxThreshold">Max Threshold</label>
+        <input type="range" id="maxThreshold" min="0" max="1000" value="300" />
+    </div>
+
+    <hr />
+    <div class="main">
+        <div id="files_container">
+            <select id="files" name="file" size="10"></select>
+        </div>
+        <div class="canvas">
+            <svg viewBox="-5 -10 270 270"></svg>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Each slice is a 256 x 256 grid of pixel values
+    const m = 256, n = 256;
+
+    const svg = d3.select("svg");
+    const path = d3.geoPath();   // with no projection, draws the contour polygons in grid units
+
+    const binSlider = document.querySelector("#binCount");
+    const minSlider = document.querySelector("#minThreshold");
+    const maxSlider = document.querySelector("#maxThreshold");
+
+    const palette = ["#0d1a50", "#3e5eba", "#2b83ba", "#abdda4", "#ffffbf", "#fdae61", "#d7191c"];
+
+    let values = [];   // the current slice as a flat 1D list
+
+    // Step 1: load a slice and flatten it into a 1D list
+    function loadSlice(fileName) {
+        d3.json("dicomData/" + fileName).then(data => {
+            values = data.flat().map(d => +d);
+
+            // Step 2: let the threshold sliders cover the value range of this slice
+            const [lo, hi] = d3.extent(values);
+            for (const slider of [minSlider, maxSlider]) {
+                slider.min = lo;
+                slider.max = hi;
+            }
+
+            draw();
+        });
+    }
+
+    // Step 3: compute the contours and draw them
+    function draw() {
+        const binCount = +binSlider.value;
+        let minThreshold = +minSlider.value;
+        let maxThreshold = +maxSlider.value;
+        if (minThreshold > maxThreshold) [minThreshold, maxThreshold] = [maxThreshold, minThreshold];
+
+        // One threshold for each bin between the min and max sliders
+        const thresholds = d3.range(binCount).map(i =>
+            minThreshold + i * (maxThreshold - minThreshold) / binCount);
+
+        // Spread the palette's colors evenly between the min and max thresholds
+        const colors = d3.scaleLinear()
+            .domain(d3.range(palette.length).map(i =>
+                minThreshold + i * (maxThreshold - minThreshold) / (palette.length - 1)))
+            .range(palette)
+            .interpolate(d3.interpolateHcl)
+            .clamp(true);
+
+        const contours = d3.contours()
+            .size([m, n])
+            .thresholds(thresholds)(values);
+
+        svg.selectAll("*").remove();
+        svg.append("g")
+            .attr("class", "contours")
+            .selectAll("path")
+            .data(contours)
+            .join("path")
+            .attr("d", path)
+            .attr("stroke", "black")
+            .attr("stroke-width", ".1px")
+            .attr("stroke-linejoin", "round")
+            .attr("fill", d => colors(d.value));
+    }
+
+    // Redraw when any slider moves
+    for (const slider of [binSlider, minSlider, maxSlider]) {
+        slider.addEventListener("input", draw);
+    }
+
+    // The list of slices on the left
+    const files = d3.range(1, 21).map(i => `brain_${String(i).padStart(3, "0")}.dcm.json`);
+    const select = d3.select("#files").attr("size", files.length);
+    select.selectAll("option")
+        .data(files)
+        .join("option")
+        .attr("value", d => d)
+        .property("selected", (d, i) => i === 0)
+        .text(d => d);
+    select.on("change", () => loadSlice(select.property("value")));
+
+    loadSlice(files[0]);
+</script>
+</body>
+</html>

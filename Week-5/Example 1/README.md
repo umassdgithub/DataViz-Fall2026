@@ -4,7 +4,7 @@ One of the best ways to deal with it, is by stacking the data points.
 Stack bar charts are based on the mark type of line, and the channel of length and position. 
 
 
-<img src="../imgs/stacked.gif" width="400px">
+<img src="../imgs/stacked.gif" width="400px" />
 
 <ol>
 <li>
